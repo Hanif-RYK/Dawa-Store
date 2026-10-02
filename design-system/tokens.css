@@ -1,0 +1,132 @@
+/*
+ * DawaStore Design System v1.0
+ * Extracted from the production Tailwind v4 build and tightened:
+ *  - 6 color families (emerald, slate + 4 semantic) instead of 13
+ *  - primary fill emerald-700 (5.4:1 with white) instead of emerald-600 (3.6:1)
+ *  - muted text slate-500 (4.8:1) instead of slate-400 (2.6:1)
+ *  - 12px minimum text size
+ *  - Outfit for display/prices, Plus Jakarta Sans for body
+ *
+ * Usage (Tailwind v4): import this file in your main CSS after `@import "tailwindcss";`.
+ * Existing emerald-* and slate-* classes keep working; new code should prefer
+ * the semantic utilities: bg-primary, text-muted, border-subtle, rounded-control, etc.
+ */
+
+@theme {
+  /* Fonts */
+  --font-display: "Outfit", system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Primary — emerald */
+  --color-primary-50: #ecfdf5;
+  --color-primary-100: #d0fae5;
+  --color-primary-200: #a4f4cf;
+  --color-primary-500: #00bc7d;
+  --color-primary-600: #009966;
+  --color-primary-700: #007a55;
+  --color-primary-800: #006045;
+  --color-primary-900: #004e3b;
+  --color-primary-950: #002c22;
+
+  --color-primary: var(--color-primary-700);
+  --color-primary-hover: var(--color-primary-800);
+  --color-on-primary: #ffffff;
+
+  /* Neutral — slate (roles) */
+  --color-page: #f8fafc;
+  --color-surface: #ffffff;
+  --color-subtle: #f1f5f9;
+  --color-border-subtle: #e2e8f0;
+  --color-border-strong: #cad5e2;
+  --color-icon: #90a1b9; /* icons & placeholders only, never text */
+  --color-muted: #62748e;
+  --color-body: #45556c;
+  --color-text: #1d293d;
+  --color-heading: #0f172b;
+
+  /* Semantic: fg / bg / border */
+  --color-success: #007a55;
+  --color-success-bg: #ecfdf5;
+  --color-success-border: #a4f4cf;
+
+  --color-warning: #bb4d00;
+  --color-warning-bg: #fffbeb;
+  --color-warning-border: #fee685;
+
+  --color-danger: #c70036;
+  --color-danger-bg: #fff1f2;
+  --color-danger-border: #ffccd3;
+
+  --color-info: #0069a8;
+  --color-info-bg: #f0f9ff;
+  --color-info-border: #b8e6fe;
+
+  --color-rx: #432dd7;
+  --color-rx-bg: #eef2ff;
+  --color-rx-border: #c6d2ff;
+
+  /* Type scale (size / line-height) */
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-body-sm: 0.875rem;
+  --text-body-sm--line-height: 1.25rem;
+  --text-body: 1rem;
+  --text-body--line-height: 1.5rem;
+  --text-body-lg: 1.125rem;
+  --text-body-lg--line-height: 1.75rem;
+  --text-h3: 1.25rem;
+  --text-h3--line-height: 1.75rem;
+  --text-price: 1.5rem;
+  --text-price--line-height: 2rem;
+  --text-h2: 1.75rem;
+  --text-h2--line-height: 2.25rem;
+  --text-h1: 2.25rem;
+  --text-h1--line-height: 2.75rem;
+  --text-display: 3rem;
+  --text-display--line-height: 3.25rem;
+
+  /* Radius */
+  --radius-sm: 0.5rem;      /* badge, chip */
+  --radius-control: 0.75rem; /* button, input */
+  --radius-card: 1rem;       /* card, panel */
+  --radius-sheet: 1.5rem;    /* modal, hero */
+
+  /* Elevation */
+  --shadow-xs: 0 1px 2px rgb(15 23 43 / 0.06);
+  --shadow-sm: 0 1px 3px rgb(15 23 43 / 0.08), 0 1px 2px rgb(15 23 43 / 0.06);
+  --shadow-md: 0 8px 16px -4px rgb(15 23 43 / 0.1), 0 2px 4px rgb(15 23 43 / 0.06);
+  --shadow-lg: 0 24px 48px -12px rgb(0 78 59 / 0.25);
+}
+
+/* Component recipes — one way to do each thing */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 h-11 px-5 rounded-control
+      font-sans text-body-sm font-bold transition-colors cursor-pointer
+      focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary-200
+      disabled:bg-border-subtle disabled:text-muted disabled:cursor-not-allowed disabled:shadow-none;
+  }
+  .btn-sm { @apply h-9 px-3.5 text-[0.8125rem] rounded-[0.625rem]; } /* dense admin tables only */
+  .btn-lg { @apply h-13 px-7 text-body; }
+
+  .btn-primary   { @apply bg-primary text-on-primary shadow-xs hover:bg-primary-hover; }
+  .btn-secondary { @apply bg-surface text-text border border-border-strong hover:bg-subtle; }
+  .btn-ghost     { @apply bg-transparent text-primary hover:bg-primary-50; }
+  .btn-danger    { @apply bg-danger text-white hover:bg-[#a50036]; }
+
+  .input {
+    @apply w-full h-11 px-3.5 rounded-control border border-border-strong bg-surface
+      text-[0.9375rem] text-heading placeholder:text-icon
+      focus:outline-none focus:border-primary focus:ring-3 focus:ring-primary-100;
+  }
+  .input[aria-invalid="true"] { @apply border-danger bg-danger-bg focus:ring-danger-border; }
+
+  .badge { @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-sm border text-caption font-bold; }
+  .badge-success { @apply bg-success-bg text-success border-success-border; }
+  .badge-warning { @apply bg-warning-bg text-warning border-warning-border; }
+  .badge-danger  { @apply bg-danger-bg text-danger border-danger-border; }
+  .badge-info    { @apply bg-info-bg text-info border-info-border; }
+  .badge-rx      { @apply bg-rx-bg text-rx border-rx-border; }
+
+  .card { @apply bg-surface border border-border-subtle rounded-card shadow-sm; }
+}
