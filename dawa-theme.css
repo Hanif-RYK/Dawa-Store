@@ -1,0 +1,77 @@
+/*
+ * DawaStore Design System v1.0 — runtime theme layer
+ *
+ * The app ships as a prebuilt Tailwind bundle (index-*.css), so this file
+ * applies the new design system on top of it without touching the build.
+ * Load it AFTER the bundle CSS in index.html and 404.html.
+ * Token source of truth: design-system/tokens.css
+ */
+
+:root {
+  --ds-primary: #007a55;
+  --ds-primary-hover: #006045;
+  --ds-primary-active: #004e3b;
+  --ds-primary-ring: #a4f4cf;
+  --ds-muted: #62748e;
+  --ds-font-display: "Outfit", system-ui, sans-serif;
+}
+
+/* ---------- 1. Color: AA-contrast primary fill ----------
+ * White on emerald-600 (#009966) is 3.6:1; on #007A55 it is 5.4:1. */
+.bg-emerald-600 { background-color: var(--ds-primary); }
+.hover\:bg-emerald-700:hover { background-color: var(--ds-primary-hover); }
+/* Some buttons lightened on hover (emerald-500); the system always darkens. */
+.bg-emerald-600.hover\:bg-emerald-500:hover { background-color: var(--ds-primary-hover); }
+.active\:bg-emerald-800:active,
+.bg-emerald-600.active\:bg-emerald-700:active { background-color: var(--ds-primary-active); }
+
+/* Muted text: slate-400 on light surfaces is 2.6:1 → slate-500 (4.8:1).
+ * Dark admin panels keep slate-400, where it already passes. */
+#root .text-slate-400:not(
+  :is([class*="bg-slate-7"], [class*="bg-slate-8"], [class*="bg-slate-9"],
+      [class*="bg-neutral-9"], [class*="bg-emerald-9"], [class*="bg-emerald-8"],
+      [class*="bg-gradient"]) *
+) {
+  color: var(--ds-muted);
+}
+
+/* ---------- 2. Typography ----------
+ * Outfit was already loaded by index.html but never used. */
+h1, h2, h3,
+.font-black {
+  font-family: var(--ds-font-display);
+}
+h1, h2 { letter-spacing: -0.015em; }
+
+/* 12px floor for readable text (dosage, pack size, helper text).
+ * 8px/9px stay: they only appear inside tiny count bubbles. */
+.text-\[10px\],
+.text-\[11px\] {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+/* ---------- 3. Accessibility: visible keyboard focus ---------- */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible {
+  outline: 3px solid var(--ds-primary-ring);
+  outline-offset: 2px;
+}
+input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(164 244 207 / 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
