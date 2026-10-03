@@ -1,0 +1,211 @@
+@import "tailwindcss";
+
+/* DawaStore Design System v1.0 (see design-system/tokens.css) */
+@theme {
+  --font-display: "Outfit", system-ui, sans-serif;
+}
+
+@layer base {
+  /* overflow-x: clip (not hidden) so html/body/#root don't become scroll
+     containers, which would break the sticky header. */
+  html, body {
+    overflow-x: clip;
+    max-width: 100%;
+    width: 100%;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    scroll-behavior: smooth;
+  }
+  #root {
+    overflow-x: clip;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Outfit for headings; Plus Jakarta Sans for body text */
+  h1, h2, h3 {
+    font-family: var(--font-display);
+  }
+  h1, h2 {
+    letter-spacing: -0.015em;
+  }
+
+  /* Visible keyboard focus */
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  input[type="checkbox"]:focus-visible,
+  input[type="radio"]:focus-visible {
+    outline: 3px solid var(--color-emerald-200);
+    outline-offset: 2px;
+  }
+
+  /* Universal Slim Modern Scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+  }
+}
+
+/* Custom sleek micro-scrollbars (3px-4px) for all elements */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.6);
+}
+
+/* Utility to completely hide scrollbar while keeping scroll functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Ultra slim scrollbars utility */
+.thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+.thin-scrollbar::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 9999px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.65);
+}
+
+/* High-visibility horizontal scrollbar for mobile/compact tables */
+.visible-table-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(52, 211, 153, 0.6) rgba(30, 41, 59, 0.8);
+}
+
+.visible-table-scrollbar::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+.visible-table-scrollbar::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.8);
+  border-radius: 9999px;
+  margin: 0 2px;
+}
+
+.visible-table-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(52, 211, 153, 0.55);
+  border-radius: 9999px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.visible-table-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(52, 211, 153, 0.85);
+}
+
+/* Micro-interaction & Polish Utilities */
+@layer utilities {
+  /* Subtle active push effect on clickable controls */
+  .btn-press {
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn-press:active {
+    transform: scale(0.98);
+  }
+
+  /* Accessible smooth focus ring */
+  .focus-ring {
+    outline: none;
+  }
+  .focus-ring:focus-visible {
+    outline: 2px solid #059669;
+    outline-offset: 2px;
+  }
+}
+
+/* Smooth modal entry/exit and drawer slide animations */
+@keyframes fadeInBackdrop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRightDrawer {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleUpModal {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-backdrop-animate {
+  animation: fadeInBackdrop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.modal-content-animate {
+  animation: scaleUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.drawer-content-animate {
+  animation: slideInRightDrawer 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+
+/* Muted text: slate-400 on light surfaces is 2.6:1, below WCAG AA. Raise it to
+   slate-500 (4.8:1) everywhere except dark panels, where slate-400 passes. */
+#root .text-slate-400:not(
+  :is([class*="bg-slate-7"], [class*="bg-slate-8"], [class*="bg-slate-9"],
+      [class*="bg-neutral-9"], [class*="bg-emerald-8"], [class*="bg-emerald-9"],
+      [class*="bg-gradient"]) *
+) {
+  color: var(--color-slate-500);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

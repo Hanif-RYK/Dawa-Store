@@ -1,0 +1,7 @@
+{
+  "name": "DawaStore - Online Pharmacy & Medicine Delivery",
+  "description": "Production-ready online pharmacy e-commerce platform with genuine medicines, prescription upload, 2-hour express delivery, comprehensive drug filtering, and complete admin dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
