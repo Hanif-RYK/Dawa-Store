@@ -330,7 +330,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
           {/* Row 3: Product Title */}
           <h3
-            className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition-colors line-clamp-2 leading-tight min-h-[2.25rem]"
+            className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition-colors line-clamp-2 leading-snug min-h-[2lh]"
             title={product.name}
           >
             {product.name}

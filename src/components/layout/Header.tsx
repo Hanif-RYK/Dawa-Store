@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { usePharmacy } from '../../context/PharmacyContext';
 import { SearchBar } from './SearchBar';
 import { MegaMenu } from './MegaMenu';
@@ -38,10 +38,45 @@ export const Header: React.FC = () => {
 
   const isProductScreen = currentPath.startsWith('/product/');
 
+  // Mobile: the header is sticky, so hide the Upload Rx / WhatsApp row while the
+  // user scrolls down and bring it back on scroll up (or near the top).
+  const [isCompact, setIsCompact] = useState(false);
+  useEffect(() => {
+    let lastY = window.scrollY;
+    let compact = false;
+    // Toggling changes the header height, and the browser's scroll anchoring then
+    // nudges scrollY. Ignore scroll events until the 200ms transition settles so
+    // that nudge isn't read as the user scrolling (which would flip it back).
+    let lockUntil = 0;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (performance.now() < lockUntil) {
+        lastY = y;
+        return;
+      }
+      const delta = y - lastY;
+      let next = compact;
+      if (y < 80) {
+        next = false;
+        lastY = y;
+      } else if (Math.abs(delta) > 8) {
+        next = delta > 0;
+        lastY = y;
+      }
+      if (next !== compact) {
+        compact = next;
+        lockUntil = performance.now() + 300;
+        setIsCompact(next);
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
     <header id="app-header" className="sticky top-0 z-40 bg-white shadow-xs border-b border-slate-200/80">
       {/* Main Bar */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex items-center justify-between gap-2 sm:gap-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
         {/* Left: Plus Icon Menu Trigger, Brand Logo & City Selector */}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Plus Icon Hamburger Menu Button */}
@@ -271,32 +306,41 @@ export const Header: React.FC = () => {
 
       {/* Mobile Search Bar Row with Action Buttons Directly Below Search (Hidden on product detail screen) */}
       {!isProductScreen && (
-        <div className="md:hidden px-3 pb-2.5 pt-0.5 w-full space-y-2">
+        <div className="md:hidden px-3 pb-2 pt-0.5 w-full">
           <SearchBar
             className="relative w-full"
             placeholder="Search medicines (Panadol, Brufen), brands..."
           />
-          {/* Directly Below Search Bar: Upload Prescription & Order via WhatsApp */}
-          <div className="grid grid-cols-2 gap-2 pt-0.5">
-            <button
-              id="mobile-search-upload-rx-btn"
-              type="button"
-              onClick={() => navigate('/upload-prescription')}
-              className="flex items-center justify-center gap-1.5 py-2.5 px-2.5 min-h-[44px] bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 active:scale-[0.98] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
-            >
-              <Upload className="w-4 h-4 shrink-0" />
-              <span className="truncate">Upload Rx</span>
-            </button>
-            <a
-              id="mobile-search-whatsapp-btn"
-              href="https://wa.me/923001234567?text=Hello,%20I%20want%20to%20order%20medicines"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-center gap-1.5 py-2.5 px-2.5 min-h-[44px] bg-[#25D366] hover:bg-[#20bd5a] active:bg-[#1da850] active:scale-[0.98] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
-            >
-              <WhatsAppIcon className="w-4 h-4 shrink-0 text-white" />
-              <span className="truncate">WhatsApp</span>
-            </a>
+          {/* Directly Below Search Bar: Upload Prescription & Order via WhatsApp (collapses on scroll down) */}
+          <div
+            className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+              isCompact ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100'
+            }`}
+            inert={isCompact}
+          >
+            <div className="overflow-hidden">
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <button
+                  id="mobile-search-upload-rx-btn"
+                  type="button"
+                  onClick={() => navigate('/upload-prescription')}
+                  className="flex items-center justify-center gap-1.5 py-2.5 px-2.5 min-h-[44px] bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 active:scale-[0.98] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+                >
+                  <Upload className="w-4 h-4 shrink-0" />
+                  <span className="truncate">Upload Rx</span>
+                </button>
+                <a
+                  id="mobile-search-whatsapp-btn"
+                  href="https://wa.me/923001234567?text=Hello,%20I%20want%20to%20order%20medicines"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-center gap-1.5 py-2.5 px-2.5 min-h-[44px] bg-[#25D366] hover:bg-[#20bd5a] active:bg-[#1da850] active:scale-[0.98] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+                >
+                  <WhatsAppIcon className="w-4 h-4 shrink-0 text-white" />
+                  <span className="truncate">WhatsApp</span>
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       )}
