@@ -11,6 +11,7 @@ import { OrderConfirmationPage } from './components/checkout/OrderConfirmationPa
 import { PrescriptionUploadPage } from './components/prescription/PrescriptionUploadPage';
 import { UserAccountPage } from './components/account/UserAccountPage';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import { StaffLoginPage } from './components/admin/StaffLoginPage';
 import { ToastContainer } from './components/common/ToastContainer';
 import { QuickViewModal } from './components/common/QuickViewModal';
 import { CompareModal } from './components/common/CompareModal';
@@ -71,14 +72,26 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 }
 
+// Navigates after render (never during it) and replaces the history entry.
+const Redirect: React.FC<{ to: string }> = ({ to }) => {
+  const { navigate } = usePharmacy();
+  useEffect(() => {
+    navigate(to, { replace: true });
+  }, [to]);
+  return null;
+};
+
 const AppContent: React.FC = () => {
-  const { currentPath } = usePharmacy();
+  const { currentPath, user } = usePharmacy();
 
   // Route matching
   const renderRoute = () => {
-    // 1. Admin Panel
+    // 1. Staff Portal sign-in and Admin Panel (staff only)
+    if (currentPath === '/admin/login') {
+      return user?.isAdmin ? <Redirect to="/admin" /> : <StaffLoginPage />;
+    }
     if (currentPath === '/admin' || currentPath.startsWith('/admin/') || currentPath.startsWith('/admin?')) {
-      return <AdminDashboard />;
+      return user?.isAdmin ? <AdminDashboard /> : <Redirect to="/admin/login" />;
     }
 
     // 2. User Account

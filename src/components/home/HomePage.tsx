@@ -199,47 +199,47 @@ export const HomePage: React.FC = () => {
   return (
     <div id="home-online-store" className="min-h-screen bg-slate-50 pb-16">
       {/* 1. HEALTH CONCERN & CATEGORY TABS */}
-      <div className="bg-transparent border-b border-slate-200/80 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative">
+      <div className="bg-white border-b border-slate-200 relative">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 relative">
           {/* Left scroll affordance & button */}
           {canScrollLeft && (
-            <div className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 flex items-center">
+            <div className="absolute left-1 sm:left-3 top-1/2 -translate-y-1/2 z-20 flex items-center">
               <button
                 type="button"
                 onClick={() => handleScroll('left')}
-                className="w-8 h-8 rounded-full bg-white/95 hover:bg-white text-slate-700 shadow-md border border-slate-200 flex items-center justify-center cursor-pointer active:scale-95 transition-all hover:text-emerald-700"
+                className="w-7 h-7 rounded-lg bg-white/95 hover:bg-white text-slate-600 shadow-sm border border-slate-200 flex items-center justify-center cursor-pointer active:scale-95 transition-all hover:text-emerald-700"
                 title="Scroll categories left"
                 aria-label="Scroll categories left"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
           {canScrollLeft && (
-            <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-slate-50 via-slate-50/80 to-transparent pointer-events-none z-10" />
+            <div className="absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-white via-white/80 to-transparent pointer-events-none z-10" />
           )}
 
           {/* Right scroll affordance & button */}
           {canScrollRight && (
-            <div className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 flex items-center">
+            <div className="absolute right-1 sm:right-3 top-1/2 -translate-y-1/2 z-20 flex items-center">
               <button
                 type="button"
                 onClick={() => handleScroll('right')}
-                className="w-8 h-8 rounded-full bg-white/95 hover:bg-white text-slate-700 shadow-md border border-slate-200 flex items-center justify-center cursor-pointer active:scale-95 transition-all hover:text-emerald-700"
+                className="w-7 h-7 rounded-lg bg-white/95 hover:bg-white text-slate-600 shadow-sm border border-slate-200 flex items-center justify-center cursor-pointer active:scale-95 transition-all hover:text-emerald-700"
                 title="Scroll categories right"
                 aria-label="Scroll categories right"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
           {canScrollRight && (
-            <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-slate-50 via-slate-50/80 to-transparent pointer-events-none z-10" />
+            <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-white via-white/80 to-transparent pointer-events-none z-10" />
           )}
 
           <div
             ref={scrollContainerRef}
-            className="flex items-center gap-2.5 overflow-x-auto py-3.5 px-1 thin-scrollbar scroll-smooth"
+            className="flex items-center gap-2 overflow-x-auto py-2.5 px-1 no-scrollbar scroll-smooth"
           >
             {STORE_TABS.map((tab) => {
               const Icon = tab.icon;
@@ -254,16 +254,10 @@ export const HomePage: React.FC = () => {
                     const el = document.getElementById(`scrolling-category-tab-${tab.id}`);
                     el?.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
                   }}
-                  className={`group shrink-0 w-auto min-w-max flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                    isActive
-                      ? 'text-emerald-950 bg-emerald-50 border-2 border-emerald-600 shadow-xs ring-1 ring-emerald-500/20'
-                      : 'text-slate-700 bg-white hover:text-slate-900 border border-slate-200 hover:border-slate-400 hover:bg-slate-50'
-                  }`}
+                  className={`group shrink-0 w-auto min-w-max flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border ${isActive ? 'text-white bg-emerald-700 border-emerald-600 shadow-xs' : 'text-slate-600 bg-slate-50 hover:text-slate-900 border-slate-200 hover:bg-slate-100/80 hover:border-slate-300'}`}
                 >
                   <Icon
-                    className={`w-4 h-4 shrink-0 transition-colors ${
-                      isActive ? 'text-emerald-700' : 'text-slate-500 group-hover:text-slate-800'
-                    }`}
+                    className={`w-3.5 h-3.5 shrink-0 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-emerald-600'}`}
                   />
                   <span className="whitespace-nowrap inline-block">{tab.name}</span>
                 </button>
@@ -276,13 +270,13 @@ export const HomePage: React.FC = () => {
       {/* 2. PRODUCT CATALOG */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-5 sm:pt-6">
         {/* Catalog Section Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-200/80">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-200">
           <div>
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Store className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              <Store className="w-5 h-5 text-emerald-600" />
               <span>{activeTabItem.name}</span>
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5">
               Showing {filteredProducts.length} verified medicines & healthcare essentials
             </p>
           </div>
@@ -291,14 +285,14 @@ export const HomePage: React.FC = () => {
             id="home-open-full-catalog-btn"
             onClick={() => {
               resetFilters(false);
-              navigate('/admin?tab=products');
+              navigate('/products');
             }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold rounded-xl border border-emerald-200/80 transition-all cursor-pointer shadow-2xs shrink-0 self-start sm:self-auto"
-            title="Open Medicines Catalog in Admin Panel"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg border border-slate-200 transition-colors cursor-pointer shadow-2xs shrink-0 self-start sm:self-auto"
+            title="Browse all medicines"
           >
-            <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Open Medicine Catalog</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500" />
+            <span>Browse All Medicines</span>
+            <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
           </button>
         </div>
 
@@ -344,9 +338,6 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
         )}
-
-
-
       </div>
     </div>
   );

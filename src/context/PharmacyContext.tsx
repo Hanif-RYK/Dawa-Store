@@ -70,6 +70,7 @@ interface PharmacyContextType {
   setIsLicenseModalOpen: (open: boolean) => void;
   // User & Addresses
   login: (email: string, password?: string) => boolean;
+  adminLogin: (email: string, role: 'admin' | 'pharmacist') => boolean;
   register: (name: string, email: string, phone: string, password?: string) => boolean;
   logout: () => void;
   updateProfile: (data: Partial<User>) => void;
@@ -188,15 +189,26 @@ export const PharmacyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [user, setUser] = useState<User | null>(() => {
     try {
       const saved = localStorage.getItem('dawastore_user');
-      if (saved) return JSON.parse(saved);
-      // Default initial mock logged-in user for rich immediate experience
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // The demo customer account (and older saved sessions without a role)
+        // must never carry admin rights; staff sign in via the Staff Portal.
+        if (parsed.id === 'usr-1' || (!parsed.role && parsed.isAdmin)) {
+          parsed.role = 'customer';
+          parsed.isAdmin = false;
+          localStorage.setItem('dawastore_user', JSON.stringify(parsed));
+        }
+        return parsed;
+      }
+      // Default demo customer so the storefront has a signed-in experience
       return {
         id: 'usr-1',
         name: 'Mohammad Hanif Chohan',
         email: 'hanifchohanryk@gmail.com',
         phone: '+92 300 1234567',
         addresses: INITIAL_ADDRESSES,
-        isAdmin: true,
+        role: 'customer',
+        isAdmin: false,
       };
     } catch {
       return null;
@@ -447,12 +459,14 @@ export const PharmacyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             window.location.hash = cleanPath;
           }
         } else {
-          // In standalone browser tab
+          // In a standalone tab, also keep the route in the hash: the app is served
+          // from a sub-path (/Dawa-Store/) on static hosting, so a plain path URL
+          // would point outside the app and 404 on refresh or when shared.
           if (window.history) {
             if (options?.replace) {
-              window.history.replaceState({ path: cleanPath }, '', cleanPath);
+              window.history.replaceState({ path: cleanPath }, '', '#' + cleanPath);
             } else {
-              window.history.pushState({ path: cleanPath }, '', cleanPath);
+              window.history.pushState({ path: cleanPath }, '', '#' + cleanPath);
             }
           }
         }
@@ -492,7 +506,7 @@ export const PharmacyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           }
         } else {
           if (window.history) {
-            window.history.replaceState({ path: cleanPath }, '', cleanPath);
+            window.history.replaceState({ path: cleanPath }, '', '#' + cleanPath);
           }
         }
       }
@@ -726,9 +740,9 @@ export const PharmacyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       email,
       phone: '+92 300 0000000',
       addresses: INITIAL_ADDRESSES,
-      isAdmin: email.includes('admin'),
     };
-    setUser({ ...existing, email });
+    // Customer sign-in never grants admin rights; staff use the Staff Portal (adminLogin).
+    setUser({ ...existing, email, role: 'customer', isAdmin: false });
     addToast({
       type: 'success',
       title: 'Welcome Back!',
@@ -751,6 +765,24 @@ export const PharmacyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       type: 'success',
       title: 'Account Created',
       message: `Welcome to DawaStore, ${name}!`,
+    });
+    return true;
+  };
+
+  const adminLogin = (email: string, role: 'admin' | 'pharmacist') => {
+    setUser({
+      id: 'adm-' + Date.now(),
+      name: email.split('@')[0],
+      email,
+      phone: '+92 300 0000000',
+      addresses: [],
+      role,
+      isAdmin: true,
+    });
+    addToast({
+      type: 'success',
+      title: 'Admin Access Granted',
+      message: `Signed in as ${role === 'admin' ? 'Store Admin' : 'Pharmacist'}`,
     });
     return true;
   };
@@ -1098,6 +1130,7 @@ export const PharmacyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         isLicenseModalOpen,
         setIsLicenseModalOpen,
         login,
+        adminLogin,
         register,
         logout,
         updateProfile,

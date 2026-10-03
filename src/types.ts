@@ -142,6 +142,7 @@ export interface User {
   email: string;
   phone: string;
   addresses: Address[];
+  role?: 'customer' | 'admin' | 'pharmacist';
   isAdmin?: boolean;
 }
 
