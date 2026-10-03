@@ -35,7 +35,26 @@
   color: var(--ds-muted);
 }
 
-/* ---------- 2. Typography ----------
+/* Rx (prescription) signal — indigo, distinct from sale (rose) and warning (amber).
+ * Applied via ds-rx* classes patched into index-DOX54LOc.js. */
+.ds-rx { background-color: #eef2ff; color: #432dd7; border-color: #c6d2ff; }
+.ds-rx-solid { background-color: #4f39f6; color: #ffffff; }
+.ds-rx-dark { background-color: rgb(97 95 255 / 0.2); color: #a3b3ff; }
+.ds-rx-chip { font-size: 11px; line-height: 1; letter-spacing: 0.02em; }
+
+/* ---------- 2. Layout: sticky header ----------
+ * overflow-x:hidden on html/body/#root/app wrapper turns them into scroll
+ * containers, which breaks `position: sticky` on the header. `clip` keeps
+ * horizontal overflow hidden without creating a scroll container. */
+html, body, #root, #root > .overflow-x-hidden {
+  overflow-x: clip;
+  overflow-y: visible;
+}
+header.sticky {
+  box-shadow: 0 1px 3px rgb(15 23 43 / 0.06);
+}
+
+/* ---------- 3. Typography ----------
  * Outfit was already loaded by index.html but never used. */
 h1, h2, h3,
 .font-black {
@@ -51,7 +70,7 @@ h1, h2 { letter-spacing: -0.015em; }
   line-height: 1.35;
 }
 
-/* ---------- 3. Accessibility: visible keyboard focus ---------- */
+/* ---------- 4. Accessibility: visible keyboard focus ---------- */
 a:focus-visible,
 button:focus-visible,
 [role="button"]:focus-visible,
