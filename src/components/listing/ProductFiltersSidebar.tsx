@@ -79,7 +79,7 @@ export const ProductFiltersSidebar: React.FC<ProductFiltersSidebarProps> = ({
   return (
     <aside
       id="product-filters-sidebar"
-      className="bg-white rounded-2xl border border-slate-200/90 p-5 space-y-6 shadow-xs"
+      className={`bg-white space-y-6 ${onCloseMobile ? 'p-2' : 'rounded-2xl border border-slate-200/90 p-5 shadow-xs'}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -202,7 +202,7 @@ export const ProductFiltersSidebar: React.FC<ProductFiltersSidebarProps> = ({
             onClick={() => setFilters((prev) => ({ ...prev, rxRequired: true, page: 1 }))}
             className={`py-1.5 rounded-lg transition-all cursor-pointer text-center ${
               filters.rxRequired === true
-                ? 'bg-white text-rose-700 shadow-xs font-bold'
+                ? 'bg-white text-indigo-700 shadow-xs font-bold'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
