@@ -4,6 +4,7 @@ import { WhatsAppIcon } from '../common/WhatsAppIcon';
 import { FaqModal } from '../common/FaqModal';
 import { AcceptedPaymentBadges } from '../common/AcceptedPaymentBadges';
 import {
+  ChevronDown,
   CircleCheck,
   Facebook,
   HeartHandshake,
@@ -22,6 +23,9 @@ export const Footer: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isFaqOpen, setIsFaqOpen] = useState(false);
+  // Mobile: link columns collapse into an accordion so the footer isn't a long wall of links
+  const [openSection, setOpenSection] = useState<'explore' | 'policies' | null>(null);
+  const toggleSection = (key: 'explore' | 'policies') => setOpenSection((prev) => (prev === key ? null : key));
   const handleSubscribe = (e) => {
     e.preventDefault();
     if (!email.trim() || !email.includes('@')) {
@@ -145,10 +149,24 @@ export const Footer: React.FC = () => {
             </div>
           </div>
           <div>
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-4 text-slate-200">
-              Explore Pharmacy
+            <h4 className="md:mb-4">
+              <button
+                type="button"
+                onClick={() => toggleSection('explore')}
+                aria-expanded={openSection === 'explore'}
+                aria-controls="footer-explore-links"
+                className="w-full flex items-center justify-between py-2 md:py-0 text-xs font-bold uppercase tracking-wider text-slate-200 cursor-pointer md:cursor-default md:pointer-events-none"
+              >
+                Explore Pharmacy
+                <ChevronDown
+                  className={`w-4 h-4 md:hidden transition-transform ${openSection === 'explore' ? 'rotate-180' : ''}`}
+                />
+              </button>
             </h4>
-            <ul className="space-y-2.5 text-xs">
+            <ul
+              id="footer-explore-links"
+              className={`space-y-2.5 text-xs pt-2 md:pt-0 ${openSection === 'explore' ? 'block' : 'hidden'} md:block`}
+            >
               <li>
                 <button
                   type="button"
@@ -197,10 +215,24 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
           <div>
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-4 text-slate-200">
-              {'Policies & Help'}
+            <h4 className="md:mb-4">
+              <button
+                type="button"
+                onClick={() => toggleSection('policies')}
+                aria-expanded={openSection === 'policies'}
+                aria-controls="footer-policies-links"
+                className="w-full flex items-center justify-between py-2 md:py-0 text-xs font-bold uppercase tracking-wider text-slate-200 cursor-pointer md:cursor-default md:pointer-events-none"
+              >
+                {'Policies & Help'}
+                <ChevronDown
+                  className={`w-4 h-4 md:hidden transition-transform ${openSection === 'policies' ? 'rotate-180' : ''}`}
+                />
+              </button>
             </h4>
-            <ul className="space-y-2.5 text-xs">
+            <ul
+              id="footer-policies-links"
+              className={`space-y-2.5 text-xs pt-2 md:pt-0 ${openSection === 'policies' ? 'block' : 'hidden'} md:block`}
+            >
               <li>
                 <button
                   type="button"
@@ -317,7 +349,7 @@ export const Footer: React.FC = () => {
                   href={storeSettings.socialLinks.whatsapp}
                   target="_blank"
                   rel="noreferrer"
-                  className="w-8 h-8 rounded-lg bg-[#25D366] hover:bg-[#20bd5a] active:scale-95 text-white flex items-center justify-center transition-all shadow-xs"
+                  className="w-8 h-8 rounded-lg bg-[#168049] hover:bg-[#126b3d] active:scale-95 text-white flex items-center justify-center transition-all shadow-xs"
                   title={`WhatsApp: ${storeSettings.whatsapp}`}
                   aria-label="WhatsApp Pharmacy Desk"
                 >

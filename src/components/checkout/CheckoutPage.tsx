@@ -297,10 +297,11 @@ export const CheckoutPage: React.FC = () => {
   };
 
   const steps = [
-    { num: 1, title: 'Delivery Address', icon: MapPin },
-    { num: 2, title: 'Prescription', icon: FileText },
-    { num: 3, title: 'Payment Method', icon: CreditCard },
-    { num: 4, title: 'Review & Place', icon: CheckCircle2 },
+    // shortTitle fits four steps across a phone screen without truncating
+    { num: 1, title: 'Delivery Address', shortTitle: 'Address', icon: MapPin },
+    { num: 2, title: 'Prescription', shortTitle: 'Rx Upload', icon: FileText },
+    { num: 3, title: 'Payment Method', shortTitle: 'Payment', icon: CreditCard },
+    { num: 4, title: 'Review & Place', shortTitle: 'Review', icon: CheckCircle2 },
   ];
 
   return (
@@ -345,7 +346,7 @@ export const CheckoutPage: React.FC = () => {
                     {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : <Icon className="w-4 h-4 sm:w-5 sm:h-5" />}
                   </button>
                   <span
-                    className={`text-xs sm:text-xs font-bold mt-2 truncate max-w-[70px] sm:max-w-none ${
+                    className={`text-xs font-bold mt-2 whitespace-nowrap ${
                       isCurrent
                         ? 'text-emerald-800'
                         : isCompleted
@@ -353,7 +354,8 @@ export const CheckoutPage: React.FC = () => {
                         : 'text-slate-400'
                     }`}
                   >
-                    {step.title}
+                    <span className="sm:hidden">{step.shortTitle}</span>
+                    <span className="hidden sm:inline">{step.title}</span>
                   </span>
                 </div>
               );

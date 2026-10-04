@@ -226,7 +226,7 @@ export const FaqModal: React.FC<FaqModalProps> = ({ isOpen, onClose }) => {
               href={storeSettings.socialLinks.whatsapp || `https://wa.me/923001234567?text=Hello,%20I%20have%20a%20question%20about%20my%20order`}
               target="_blank"
               rel="noreferrer"
-              className="px-3 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-lg font-bold flex items-center gap-1.5 transition-all shadow-xs"
+              className="px-3 py-1.5 bg-[#168049] hover:bg-[#126b3d] text-white rounded-lg font-bold flex items-center gap-1.5 transition-all shadow-xs"
             >
               <WhatsAppIcon className="w-3.5 h-3.5 text-white" />
               <span>WhatsApp Us</span>

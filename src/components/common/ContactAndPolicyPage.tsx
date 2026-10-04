@@ -185,9 +185,9 @@ export const ContactAndPolicyPage: React.FC<ContactAndPolicyPageProps> = ({
                   </div>
 
                   {/* Direct WhatsApp Ordering */}
-                  <div className="p-4 rounded-xl bg-[#25D366]/10 border border-[#25D366]/30 flex items-center justify-between">
+                  <div className="p-4 rounded-xl bg-[#168049]/10 border border-[#168049]/30 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#25D366] text-white flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-[#168049] text-white flex items-center justify-center shrink-0">
                         <WhatsAppIcon className="w-5 h-5 text-white" />
                       </div>
                       <div>
@@ -199,7 +199,7 @@ export const ContactAndPolicyPage: React.FC<ContactAndPolicyPageProps> = ({
                       href={storeSettings.socialLinks.whatsapp}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-3.5 py-2 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0 flex items-center gap-1.5"
+                      className="px-3.5 py-2 bg-[#168049] hover:bg-[#126b3d] text-white text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0 flex items-center gap-1.5"
                     >
                       <span>Chat</span>
                     </a>
