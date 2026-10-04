@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { usePharmacy } from '../../context/PharmacyContext';
 import { Breadcrumbs } from '../common/Breadcrumbs';
-import { Address, Order } from '../../types';
+import { Address, Order, OrderStatus } from '../../types';
 import { PAKISTANI_CITIES, CITY_AREAS } from '../../data/mockData';
 import { formatOrderDate } from '../../utils/formatDate';
 import {
@@ -26,6 +26,32 @@ import {
   X,
   Phone,
 } from 'lucide-react';
+
+// Customer-facing names for order statuses (also used by the filter chips)
+const STATUS_LABEL: Record<OrderStatus, string> = {
+  Pending: 'Placed',
+  Confirmed: 'Processing',
+  Shipped: 'Shipped',
+  Delivered: 'Delivered',
+  Cancelled: 'Cancelled',
+};
+const ORDER_STEPS: OrderStatus[] = ['Pending', 'Confirmed', 'Shipped', 'Delivered'];
+
+const OrderProgress: React.FC<{ status: OrderStatus }> = ({ status }) => {
+  const current = ORDER_STEPS.indexOf(status);
+  return (
+    <ol className="grid grid-cols-4 gap-1" aria-label={`Order status: ${STATUS_LABEL[status]}`}>
+      {ORDER_STEPS.map((step, i) => (
+        <li key={step} className="min-w-0">
+          <div className={`h-1.5 rounded-full ${i <= current ? 'bg-emerald-600' : 'bg-slate-200'}`} />
+          <span className={`block mt-1 text-[11px] font-semibold truncate ${i === current ? 'text-emerald-800' : i < current ? 'text-slate-600' : 'text-slate-400'}`}>
+            {step === 'Shipped' ? 'On the way' : STATUS_LABEL[step]}
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+};
 
 export const UserAccountPage: React.FC = () => {
   const {
@@ -226,151 +252,112 @@ export const UserAccountPage: React.FC = () => {
     },
   ];
 
+  // Phones show the tabs as a scrolling row; keep the selected one in view (e.g. after /account?tab=wishlist)
+  const accountNavRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const active = accountNavRef.current?.querySelector<HTMLElement>('[aria-current="page"]');
+    const nav = accountNavRef.current;
+    if (active && nav && nav.scrollWidth > nav.clientWidth) {
+      nav.scrollTo({ left: active.offsetLeft - 8, behavior: 'smooth' });
+    }
+  }, [activeTab]);
+
+  const accountTabs = [
+    { id: 'orders' as const, label: 'Order History', short: 'Orders', icon: Package, count: orders.length },
+    { id: 'prescriptions' as const, label: 'Doctor Prescriptions', short: 'Prescriptions', icon: FileText, count: userPrescriptions.length },
+    { id: 'addresses' as const, label: 'Saved Addresses', short: 'Addresses', icon: MapPin, count: user.addresses.length },
+    { id: 'wishlist' as const, label: 'Wishlist / Saved Medicines', short: 'Wishlist', icon: Heart, count: wishlist.length },
+    { id: 'profile' as const, label: 'Personal Profile', short: 'Profile', icon: User, count: undefined },
+  ];
+
   return (
     <div id="user-account-container" className="min-h-screen bg-slate-50 py-6">
       <Breadcrumbs items={[{ label: 'My Account' }]} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-4">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8 items-start">
           {/* Left Navigation Sidebar */}
-          <div className="lg:col-span-4 space-y-4">
-            {/* User Profile Card */}
-            <div className="bg-white rounded-3xl border border-slate-200/90 p-6 shadow-xs text-center">
-              <div className="w-18 h-18 rounded-full bg-emerald-800 text-white flex items-center justify-center font-bold text-2xl mx-auto mb-3 shadow-md">
-                {user.name.charAt(0)}
+          <div className="lg:col-span-4 space-y-4 lg:sticky lg:top-20">
+            {/* User Profile Card: compact row on phones, centred card on desktop */}
+            <div className="bg-white rounded-2xl lg:rounded-3xl border border-slate-200/90 p-4 lg:p-6 shadow-xs lg:text-center">
+              <div className="flex lg:block items-center gap-3">
+                <div className="w-12 h-12 lg:w-18 lg:h-18 shrink-0 rounded-full bg-emerald-800 text-white flex items-center justify-center font-bold text-lg lg:text-2xl lg:mx-auto lg:mb-3 shadow-md">
+                  {user.name.charAt(0)}
+                </div>
+                <div className="min-w-0">
+                  <h2 className="font-black text-base lg:text-lg text-slate-900 truncate">{user.name}</h2>
+                  <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                  <p className="text-xs font-semibold text-emerald-700 lg:mt-1">{user.phone}</p>
+                </div>
               </div>
-              <h2 className="font-black text-lg text-slate-900">{user.name}</h2>
-              <p className="text-xs text-slate-500">{user.email}</p>
-              <p className="text-xs font-semibold text-emerald-700 mt-1">{user.phone}</p>
 
-              <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-around text-center text-xs">
-                <div>
-                  <span className="font-extrabold text-slate-900 text-base">
-                    {orders.length}
-                  </span>
-                  <span className="block text-slate-400 text-xs">Orders</span>
-                </div>
-                <div className="w-px h-6 bg-slate-200" />
-                <div>
-                  <span className="font-extrabold text-slate-900 text-base">
-                    {wishlist.length}
-                  </span>
-                  <span className="block text-slate-400 text-xs">Wishlist</span>
-                </div>
-                <div className="w-px h-6 bg-slate-200" />
-                <div>
-                  <span className="font-extrabold text-slate-900 text-base">
-                    {user.addresses.length}
-                  </span>
-                  <span className="block text-slate-400 text-xs">Addresses</span>
-                </div>
+              <div className="mt-3 pt-3 lg:mt-4 lg:pt-4 border-t border-slate-100 grid grid-cols-3 divide-x divide-slate-200 text-center text-xs">
+                {[
+                  { label: 'Orders', value: orders.length, tab: 'orders' as const },
+                  { label: 'Wishlist', value: wishlist.length, tab: 'wishlist' as const },
+                  { label: 'Addresses', value: user.addresses.length, tab: 'addresses' as const },
+                ].map((stat) => (
+                  <button
+                    key={stat.label}
+                    type="button"
+                    onClick={() => setActiveTab(stat.tab)}
+                    className="cursor-pointer hover:text-emerald-700"
+                  >
+                    <span className="block font-extrabold text-slate-900 text-base">{stat.value}</span>
+                    <span className="block text-slate-500 text-xs">{stat.label}</span>
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Account Navigation Tabs */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-2 space-y-1">
-              <button
-                type="button"
-                onClick={() => setActiveTab('orders')}
-                className={`w-full text-left p-3 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
-                  activeTab === 'orders'
-                    ? 'bg-emerald-700 text-white shadow-xs'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Package className="w-4 h-4" />
-                  <span>Order History</span>
-                </div>
-                <span className="px-1.5 py-0.5 rounded text-xs bg-black/10">
-                  {orders.length}
-                </span>
-              </button>
+            {/* Account Navigation: scrolling chips on phones, vertical list on desktop */}
+            <nav
+              ref={accountNavRef}
+              aria-label="Account sections"
+              className="relative bg-white rounded-2xl border border-slate-200/90 shadow-xs p-1.5 lg:p-2 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible thin-scrollbar"
+            >
+              {accountTabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`shrink-0 lg:w-full text-left px-3 py-2.5 lg:p-3 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center justify-between gap-2 cursor-pointer ${
+                      isActive ? 'bg-emerald-700 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2 lg:gap-2.5">
+                      <Icon className="w-4 h-4" />
+                      <span className="lg:hidden">{tab.short}</span>
+                      <span className="hidden lg:inline">{tab.label}</span>
+                    </span>
+                    {tab.count !== undefined && (
+                      <span className={`px-1.5 py-0.5 rounded text-[11px] ${isActive ? 'bg-black/15' : 'bg-slate-100 text-slate-600'}`}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
 
-              <button
-                type="button"
-                onClick={() => setActiveTab('prescriptions')}
-                className={`w-full text-left p-3 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
-                  activeTab === 'prescriptions'
-                    ? 'bg-emerald-700 text-white shadow-xs'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <FileText className="w-4 h-4" />
-                  <span>Doctor Prescriptions</span>
-                </div>
-                <span className="px-1.5 py-0.5 rounded text-xs bg-black/10">
-                  {userPrescriptions.length}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('addresses')}
-                className={`w-full text-left p-3 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
-                  activeTab === 'addresses'
-                    ? 'bg-emerald-700 text-white shadow-xs'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <MapPin className="w-4 h-4" />
-                  <span>Saved Addresses</span>
-                </div>
-                <span className="px-1.5 py-0.5 rounded text-xs bg-black/10">
-                  {user.addresses.length}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('wishlist')}
-                className={`w-full text-left p-3 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
-                  activeTab === 'wishlist'
-                    ? 'bg-emerald-700 text-white shadow-xs'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Heart className="w-4 h-4" />
-                  <span>Wishlist / Saved Medicines</span>
-                </div>
-                <span className="px-1.5 py-0.5 rounded text-xs bg-black/10">
-                  {wishlist.length}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('profile')}
-                className={`w-full text-left p-3 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
-                  activeTab === 'profile'
-                    ? 'bg-emerald-700 text-white shadow-xs'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <User className="w-4 h-4" />
-                  <span>Personal Profile</span>
-                </div>
-              </button>
-
-              <div className="pt-2 border-t border-slate-100">
+              <div className="shrink-0 lg:pt-2 lg:border-t border-slate-100 flex">
                 <button
                   type="button"
                   onClick={logout}
-                  className="w-full text-left p-3 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors flex items-center gap-2.5 cursor-pointer"
+                  className="lg:w-full text-left px-3 py-2.5 lg:p-3 rounded-xl text-xs font-bold whitespace-nowrap text-rose-600 hover:bg-rose-50 transition-colors flex items-center gap-2 lg:gap-2.5 cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Sign Out</span>
                 </button>
               </div>
-            </div>
+            </nav>
           </div>
 
           {/* Right Content Panels */}
-          <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-200/90 shadow-xs p-6 sm:p-8">
+          <div className="lg:col-span-8 bg-white rounded-2xl lg:rounded-3xl border border-slate-200/90 shadow-xs p-4 sm:p-8">
             {/* 1. ORDER HISTORY TAB */}
             {activeTab === 'orders' && (
               <div className="space-y-6">
@@ -392,7 +379,7 @@ export const UserAccountPage: React.FC = () => {
                       const count =
                         st === 'All'
                           ? orders.length
-                          : orders.filter((o) => o.status === st).length;
+                          : orders.filter((o) => STATUS_LABEL[o.status] === st).length;
                       const isActive = orderStatusFilter === st;
                       return (
                         <button
@@ -439,12 +426,18 @@ export const UserAccountPage: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-4">
+                    {orderStatusFilter !== 'All' &&
+                      !orders.some((o) => STATUS_LABEL[o.status] === orderStatusFilter) && (
+                        <p className="py-8 text-center text-xs text-slate-500">
+                          No {orderStatusFilter.toLowerCase()} orders.
+                        </p>
+                      )}
                     {orders
-                      .filter((ord) => orderStatusFilter === 'All' || ord.status === orderStatusFilter)
+                      .filter((ord) => orderStatusFilter === 'All' || STATUS_LABEL[ord.status] === orderStatusFilter)
                       .map((ord) => (
                       <div
                         key={ord.id}
-                        className="p-5 rounded-2xl border border-slate-200/80 hover:border-emerald-500/80 transition-all bg-slate-50/40 space-y-3"
+                        className="p-4 sm:p-5 rounded-2xl border border-slate-200/80 hover:border-emerald-500/80 transition-all bg-slate-50/40 space-y-3"
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3 text-xs">
                           <div>
@@ -459,23 +452,25 @@ export const UserAccountPage: React.FC = () => {
                           <div className="flex items-center gap-2">
                             {/* Status badge */}
                             <span
-                              className={`px-2.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider ${
+                              className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider ${
                                 ord.status === 'Delivered'
                                   ? 'bg-emerald-100 text-emerald-800'
                                   : ord.status === 'Shipped'
                                   ? 'bg-blue-100 text-blue-800'
                                   : ord.status === 'Confirmed'
                                   ? 'bg-amber-100 text-amber-800'
+                                  : ord.status === 'Cancelled'
+                                  ? 'bg-rose-100 text-rose-800'
                                   : 'bg-slate-200 text-slate-800'
                               }`}
                             >
-                              {ord.status}
+                              {STATUS_LABEL[ord.status]}
                             </span>
 
                             <button
                               type="button"
                               onClick={() => setSelectedOrder(ord)}
-                              className="px-3 py-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-bold cursor-pointer"
+                              className="hit-area px-3 py-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-bold cursor-pointer"
                             >
                               Details
                             </button>
@@ -483,37 +478,47 @@ export const UserAccountPage: React.FC = () => {
                         </div>
 
                         {/* Items in order */}
+                        {/* Progress for orders still on the way */}
+                        {ORDER_STEPS.includes(ord.status) && ord.status !== 'Delivered' && (
+                          <OrderProgress status={ord.status} />
+                        )}
+
                         <div className="flex items-center justify-between gap-4">
-                          <div className="flex -space-x-2 overflow-hidden">
-                            {ord.items.map((item, i) => (
-                              <img
-                                key={item.product?.id || i}
-                                src={item.image || item.product?.images?.[0]}
-                                alt={item.productName || item.product?.name || 'Medicine'}
-                                className="w-10 h-10 object-contain rounded-lg border-2 border-white bg-slate-100 p-0.5"
-                                title={item.productName || item.product?.name}
-                              />
-                            ))}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex -space-x-2 shrink-0">
+                              {ord.items.slice(0, 3).map((item, i) => (
+                                <img
+                                  key={item.productId || i}
+                                  src={item.image || item.product?.images?.[0]}
+                                  alt={item.productName || item.product?.name || 'Medicine'}
+                                  className="w-11 h-11 object-cover rounded-lg border-2 border-white bg-slate-100"
+                                  title={item.productName || item.product?.name}
+                                />
+                              ))}
+                            </div>
+                            <p className="text-xs font-semibold text-slate-700 line-clamp-2 min-w-0">
+                              {ord.items.map((i) => i.productName || i.product?.name).join(', ')}
+                            </p>
                           </div>
 
-                          <div className="text-right">
-                            <div className="text-xs text-slate-400">Total Amount:</div>
-                            <div className="text-base font-black text-emerald-700">
+                          <div className="text-right shrink-0">
+                            <div className="text-xs text-slate-500">Total</div>
+                            <div className="text-base font-black text-emerald-700 whitespace-nowrap">
                               Rs. {(ord.totalAmount ?? ord.total).toLocaleString()}
                             </div>
                           </div>
                         </div>
 
                         {/* Order Actions */}
-                        <div className="pt-2 flex items-center justify-between text-xs">
-                          <span className="text-slate-500 font-medium">
-                            {ord.items.length} items • Delivery to {ord.shippingAddress.city}
+                        <div className="pt-2 flex items-center justify-between gap-3 text-xs">
+                          <span className="text-slate-500 font-medium min-w-0">
+                            {ord.items.reduce((n, i) => n + i.quantity, 0)} items • {ord.shippingAddress.city}
                           </span>
 
                           <button
                             type="button"
                             onClick={() => handleReorder(ord)}
-                            className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                            className="hit-area-y shrink-0 whitespace-nowrap px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                           >
                             <RotateCcw className="w-3.5 h-3.5" />
                             <span>Order Again</span>
@@ -685,7 +690,9 @@ export const UserAccountPage: React.FC = () => {
                         <div className="pt-2 border-t border-slate-100 flex items-center justify-end">
                           <button
                             type="button"
-                            onClick={() => deleteAddress(addr.id)}
+                            onClick={() => {
+                              if (window.confirm(`Delete the address for ${addr.fullName}?`)) deleteAddress(addr.id);
+                            }}
                             className="text-xs text-rose-600 hover:text-rose-800 flex items-center gap-1 font-semibold cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -734,46 +741,52 @@ export const UserAccountPage: React.FC = () => {
                     {wishlistedProducts.map((p) => (
                       <div
                         key={p.id}
-                        className="p-4 rounded-2xl border border-slate-200/80 bg-white flex items-center gap-3 justify-between"
+                        className="p-3 rounded-2xl border border-slate-200/80 bg-white flex gap-3"
                       >
-                        <img
-                          src={p.images[0]}
-                          alt={p.name}
-                          className="w-16 h-16 object-contain bg-slate-50 rounded-xl p-1 border"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <span className="text-xs font-bold text-emerald-700 uppercase">
-                            {p.brand}
-                          </span>
-                          <h4
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/product/${p.slug}`)}
+                          className="shrink-0 cursor-pointer"
+                          aria-label={`View ${p.name}`}
+                        >
+                          <img
+                            src={p.images[0]}
+                            alt={p.name}
+                            className="w-20 h-20 object-cover bg-slate-100 rounded-xl border border-slate-200"
+                          />
+                        </button>
+                        <div className="flex-1 min-w-0 flex flex-col">
+                          <span className="text-[11px] font-semibold text-slate-500 truncate">{p.brand}</span>
+                          <button
+                            type="button"
                             onClick={() => navigate(`/product/${p.slug}`)}
-                            className="text-xs font-bold text-slate-900 truncate hover:text-emerald-700 cursor-pointer"
+                            className="text-left text-xs font-bold text-slate-900 line-clamp-2 hover:text-emerald-700 cursor-pointer"
                           >
                             {p.name}
-                          </h4>
-                          <p className="text-xs font-black text-emerald-700 mt-0.5">
+                          </button>
+                          <p className="text-sm font-black text-emerald-700 mt-0.5">
                             Rs. {p.price.toLocaleString()}
                           </p>
-                        </div>
-                        <div className="flex flex-col gap-1.5 shrink-0">
+                        <div className="mt-auto pt-2 flex items-center gap-3">
                           <button
                             type="button"
                             onClick={() => {
                               addToCart(p, 1);
                               toggleWishlist(p.id);
                             }}
-                            className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-lg shadow-xs cursor-pointer flex items-center gap-1"
+                            className="hit-area-y px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-lg shadow-xs cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
                           >
-                            <ShoppingBag className="w-3 h-3" />
+                            <ShoppingBag className="w-3.5 h-3.5" />
                             <span>Move to Cart</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => toggleWishlist(p.id)}
-                            className="text-xs font-semibold text-rose-600 hover:underline text-center cursor-pointer"
+                            className="hit-area text-xs font-semibold text-rose-600 hover:underline cursor-pointer"
                           >
                             Remove
                           </button>
+                        </div>
                         </div>
                       </div>
                     ))}
