@@ -49,14 +49,17 @@ const SAMPLE_PRESCRIPTIONS = [
   },
 ];
 
+const MAX_RX_FILE_BYTES = 10 * 1024 * 1024;
+// Pakistani mobile: 03XXXXXXXXX, +923XXXXXXXXX or 00923XXXXXXXXX (spaces and dashes ignored)
+const PK_MOBILE_RE = /^(?:\+92|0092|0)3\d{9}$/;
+
 export const PrescriptionUploadPage: React.FC = () => {
   const { user, createOrder, navigate, addToast, selectedCity, paymentSettings } = usePharmacy();
 
   // Prescription file state
-  const [rxImage, setRxImage] = useState<string | null>(
-    'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=800&auto=format&fit=crop&q=80'
-  );
-  const [rxFileName, setRxFileName] = useState<string>('Cardiology_NICVD_Prescription.jpg');
+  // Starts empty so an order can't go out with someone else's (sample) prescription attached
+  const [rxImage, setRxImage] = useState<string | null>(null);
+  const [rxFileName, setRxFileName] = useState<string>('');
   const [isDragOver, setIsDragOver] = useState(false);
 
   // Fulfillment preferences
@@ -96,16 +99,22 @@ export const PrescriptionUploadPage: React.FC = () => {
     city: string;
   } | null>(null);
 
-  // File upload handler
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 10 * 1024 * 1024) {
+  // Shared by the file picker and drag & drop: check type and size before reading
+  const processFile = (file: File) => {
+    const isAllowedType = file.type.startsWith('image/') || file.type === 'application/pdf' || /\.(heic|heif|pdf)$/i.test(file.name);
+    if (!isAllowedType) {
+      addToast({
+        type: 'error',
+        title: 'Unsupported file',
+        message: 'Please upload a photo (JPG, PNG, HEIC) or a PDF of your prescription.',
+      });
+      return;
+    }
+    if (file.size > MAX_RX_FILE_BYTES) {
       addToast({
         type: 'error',
         title: 'File too large',
-        message: 'Prescription image must be under 10MB.',
+        message: 'Prescription file must be under 10MB.',
       });
       return;
     }
@@ -114,32 +123,34 @@ export const PrescriptionUploadPage: React.FC = () => {
     reader.onload = () => {
       setRxImage(reader.result as string);
       setRxFileName(file.name);
+      setErrors((prev) => {
+        const { rxImage: _removed, ...rest } = prev;
+        return rest;
+      });
       addToast({
         type: 'success',
         title: 'Prescription Attached',
         message: `${file.name} uploaded successfully.`,
       });
     };
+    reader.onerror = () => {
+      addToast({ type: 'error', title: 'Upload failed', message: 'Could not read this file. Please try again.' });
+    };
     reader.readAsDataURL(file);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+    // Reset so picking the same file again still fires onChange
+    e.target.value = '';
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
     const file = e.dataTransfer.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setRxImage(reader.result as string);
-        setRxFileName(file.name);
-        addToast({
-          type: 'success',
-          title: 'Prescription Attached',
-          message: `${file.name} uploaded.`,
-        });
-      };
-      reader.readAsDataURL(file);
-    }
+    if (file) processFile(file);
   };
 
   const handleCityChange = (newCity: string) => {
@@ -151,18 +162,27 @@ export const PrescriptionUploadPage: React.FC = () => {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!rxImage) {
-      newErrors.rxImage = 'Please upload a photo of your prescription or select a sample.';
+      newErrors.rxImage = 'Please upload a photo or PDF of your prescription.';
     }
     if (!fullName.trim()) {
       newErrors.fullName = 'Patient or contact name is required';
     }
-    if (!phone.trim() || phone.length < 10) {
+    if (!PK_MOBILE_RE.test(phone.replace(/[\s-]/g, ''))) {
       newErrors.phone = 'Valid Pakistani mobile number is required (e.g. +92 300 1234567)';
     }
     if (!addressLine.trim()) {
       newErrors.addressLine = 'Street address / House # is required for delivery';
     }
     setErrors(newErrors);
+    const firstError = ['rxImage', 'fullName', 'phone', 'addressLine'].find((k) => newErrors[k]);
+    if (firstError) {
+      // Wait for the error text to render, then bring the first problem into view
+      requestAnimationFrame(() => {
+        const el = document.getElementById(`rx-field-${firstError}`);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (el instanceof HTMLInputElement) el.focus({ preventScroll: true });
+      });
+    }
     return Object.keys(newErrors).length === 0;
   };
 
@@ -402,15 +422,22 @@ export const PrescriptionUploadPage: React.FC = () => {
               </div>
 
               {/* Upload Dropzone */}
-              <div className="mt-5">
+              <div id="rx-field-rxImage" className="mt-5 scroll-mt-24">
                 {rxImage ? (
                   <div className="relative rounded-2xl border-2 border-emerald-500/50 bg-emerald-50/20 p-4 text-center">
                     <div className="flex flex-col sm:flex-row items-center gap-4">
-                      <img
-                        src={rxImage}
-                        alt="Prescription preview"
-                        className="w-32 h-28 object-cover rounded-xl border border-slate-200 shadow-sm shrink-0 bg-white"
-                      />
+                      {rxImage.startsWith('data:application/pdf') ? (
+                        <div className="w-32 h-28 rounded-xl border border-slate-200 bg-white shrink-0 flex flex-col items-center justify-center gap-1 text-rose-600">
+                          <FileText className="w-10 h-10" />
+                          <span className="text-[11px] font-bold">PDF</span>
+                        </div>
+                      ) : (
+                        <img
+                          src={rxImage}
+                          alt="Prescription preview"
+                          className="w-32 h-28 object-cover rounded-xl border border-slate-200 shadow-sm shrink-0 bg-white"
+                        />
+                      )}
                       <div className="text-left flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 text-emerald-700 text-xs font-bold">
                           <CheckCircle2 className="w-4 h-4 shrink-0" />
@@ -425,10 +452,10 @@ export const PrescriptionUploadPage: React.FC = () => {
 
                         <div className="mt-3 flex items-center gap-3">
                           <label className="text-xs font-bold text-emerald-700 hover:text-emerald-800 cursor-pointer underline">
-                            <span>Change Photo</span>
+                            <span>Change File</span>
                             <input
                               type="file"
-                              accept="image/*,.pdf"
+                              accept="image/*,.heic,.heif,application/pdf"
                               onChange={handleFileChange}
                               className="hidden"
                             />
@@ -467,7 +494,8 @@ export const PrescriptionUploadPage: React.FC = () => {
                     </div>
 
                     <h3 className="text-sm font-extrabold text-slate-800">
-                      Drag & drop your prescription here
+                      <span className="sm:hidden">Upload your prescription</span>
+                      <span className="hidden sm:inline">Drag & drop your prescription here</span>
                     </h3>
                     <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
                       Supports JPG, PNG, HEIC, or PDF. Ensure doctor’s signature and medicine names are visible.
@@ -475,10 +503,10 @@ export const PrescriptionUploadPage: React.FC = () => {
 
                     <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
                       <label className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer">
-                        <span>Browse from Device / Camera</span>
+                        <span>Take Photo / Choose File</span>
                         <input
                           type="file"
-                          accept="image/*,.pdf"
+                          accept="image/*,.heic,.heif,application/pdf"
                           onChange={handleFileChange}
                           className="hidden"
                         />
@@ -500,7 +528,7 @@ export const PrescriptionUploadPage: React.FC = () => {
                 <div className="flex items-center justify-between mb-2.5">
                   <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    Or select a sample prescription to test:
+                    Demo: try a sample prescription
                   </span>
                 </div>
 
@@ -651,7 +679,7 @@ export const PrescriptionUploadPage: React.FC = () => {
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="e.g. Please send only 1 strip of Concor, patient is allergic to penicillin, call after 2 PM..."
-                    className="w-full px-3.5 py-2.5 text-xs text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-600"
+                    className="w-full px-3.5 py-2.5 text-base sm:text-xs text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-600"
                   />
                 </div>
               </div>
@@ -677,35 +705,44 @@ export const PrescriptionUploadPage: React.FC = () => {
               <div className="mt-5 space-y-3.5">
                 {/* Patient Name */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label htmlFor="rx-field-fullName" className="block text-xs font-bold text-slate-700 mb-1">
                     Patient / Receiver Name *
                   </label>
                   <input
+                    id="rx-field-fullName"
                     type="text"
+                    autoComplete="name"
+                    aria-invalid={!!errors.fullName}
+                    aria-describedby={errors.fullName ? 'rx-error-fullName' : undefined}
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="e.g. Muhammad Usman"
-                    className="w-full px-3.5 py-2.5 text-xs text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-600 font-medium"
+                    className="w-full px-3.5 py-2.5 text-base sm:text-xs text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-600 font-medium"
                   />
                   {errors.fullName && (
-                    <p className="text-xs text-rose-600 mt-1">{errors.fullName}</p>
+                    <p id="rx-error-fullName" className="text-xs text-rose-600 mt-1">{errors.fullName}</p>
                   )}
                 </div>
 
                 {/* Phone Number */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label htmlFor="rx-field-phone" className="block text-xs font-bold text-slate-700 mb-1">
                     WhatsApp / Mobile Number *
                   </label>
                   <input
+                    id="rx-field-phone"
                     type="tel"
+                    autoComplete="tel"
+                    inputMode="tel"
+                    aria-invalid={!!errors.phone}
+                    aria-describedby={errors.phone ? 'rx-error-phone' : undefined}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="+92 300 1234567"
-                    className="w-full px-3.5 py-2.5 text-xs text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-600 font-medium"
+                    className="w-full px-3.5 py-2.5 text-base sm:text-xs text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-600 font-medium"
                   />
                   {errors.phone && (
-                    <p className="text-xs text-rose-600 mt-1">{errors.phone}</p>
+                    <p id="rx-error-phone" className="text-xs text-rose-600 mt-1">{errors.phone}</p>
                   )}
                   <p className="text-xs text-slate-400 mt-0.5">
                     Our pharmacist will WhatsApp or call this number with your bill.
@@ -715,11 +752,12 @@ export const PrescriptionUploadPage: React.FC = () => {
                 {/* City Selection */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">City *</label>
+                    <label htmlFor="rx-city" className="block text-xs font-bold text-slate-700 mb-1">City *</label>
                     <select
+                      id="rx-city"
                       value={city}
                       onChange={(e) => handleCityChange(e.target.value)}
-                      className="w-full px-3 py-2.5 text-xs text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-600 font-medium"
+                      className="w-full px-3 py-2.5 text-base sm:text-xs text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-600 font-medium"
                     >
                       {PAKISTANI_CITIES.map((c) => (
                         <option key={c} value={c}>
@@ -730,45 +768,51 @@ export const PrescriptionUploadPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Area / Sector</label>
+                    <label htmlFor="rx-area" className="block text-xs font-bold text-slate-700 mb-1">Area / Sector</label>
                     <input
+                      id="rx-area"
                       type="text"
                       value={area}
                       onChange={(e) => setArea(e.target.value)}
                       placeholder="e.g. Clifton, Gulberg, F-7"
-                      className="w-full px-3 py-2.5 text-xs text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-600 font-medium"
+                      className="w-full px-3 py-2.5 text-base sm:text-xs text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-600 font-medium"
                     />
                   </div>
                 </div>
 
                 {/* Street Address */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label htmlFor="rx-field-addressLine" className="block text-xs font-bold text-slate-700 mb-1">
                     Street Address / House # *
                   </label>
                   <input
+                    id="rx-field-addressLine"
                     type="text"
+                    autoComplete="street-address"
+                    aria-invalid={!!errors.addressLine}
+                    aria-describedby={errors.addressLine ? 'rx-error-addressLine' : undefined}
                     value={addressLine}
                     onChange={(e) => setAddressLine(e.target.value)}
                     placeholder="e.g. Flat 402, Al-Rahim Towers, Street 5"
-                    className="w-full px-3.5 py-2.5 text-xs text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-600 font-medium"
+                    className="w-full px-3.5 py-2.5 text-base sm:text-xs text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-600 font-medium"
                   />
                   {errors.addressLine && (
-                    <p className="text-xs text-rose-600 mt-1">{errors.addressLine}</p>
+                    <p id="rx-error-addressLine" className="text-xs text-rose-600 mt-1">{errors.addressLine}</p>
                   )}
                 </div>
 
                 {/* Landmark */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label htmlFor="rx-landmark" className="block text-xs font-bold text-slate-700 mb-1">
                     Nearby Landmark (Optional)
                   </label>
                   <input
+                    id="rx-landmark"
                     type="text"
                     value={landmark}
                     onChange={(e) => setLandmark(e.target.value)}
                     placeholder="e.g. Near South City Hospital"
-                    className="w-full px-3.5 py-2.5 text-xs text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-600 font-medium"
+                    className="w-full px-3.5 py-2.5 text-base sm:text-xs text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-600 font-medium"
                   />
                 </div>
 
