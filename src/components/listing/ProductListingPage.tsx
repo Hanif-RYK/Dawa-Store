@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { usePharmacy } from '../../context/PharmacyContext';
 import { ProductCard } from '../common/ProductCard';
 import { ProductFiltersSidebar } from './ProductFiltersSidebar';
@@ -41,6 +41,22 @@ export const ProductListingPage: React.FC<ProductListingPageProps> = ({
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [isInfiniteScroll, setIsInfiniteScroll] = useState(false);
   const [jumpPageInput, setJumpPageInput] = useState('');
+  const resultsTopRef = useRef<HTMLDivElement>(null);
+
+  // Mobile filter drawer: close on Escape and stop the page behind it from scrolling
+  useEffect(() => {
+    if (!isMobileFilterOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMobileFilterOpen(false);
+    };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [isMobileFilterOpen]);
 
   // Sync categorySlug and query params if provided in URL
   useEffect(() => {
@@ -208,6 +224,17 @@ export const ProductListingPage: React.FC<ProductListingPageProps> = ({
     (filters.maxPrice !== undefined && filters.maxPrice < 3500) ||
     Boolean(filters.search);
 
+  // Number of filter groups in use, shown on the mobile Filters button
+  const activeFilterCount = [
+    filters.categoryId,
+    filters.brands?.length,
+    filters.dosageForms?.length,
+    filters.ingredients?.length,
+    filters.rxRequired !== undefined,
+    filters.inStockOnly,
+    filters.minPrice !== undefined || (filters.maxPrice !== undefined && filters.maxPrice < 3500),
+  ].filter(Boolean).length;
+
   // Breadcrumbs items
   const breadcrumbItems: { label: string; path?: string }[] = [{ label: 'All Products', path: '/products' }];
   if (filters.lowStockOnly) {
@@ -233,7 +260,7 @@ export const ProductListingPage: React.FC<ProductListingPageProps> = ({
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setFilters((prev) => ({ ...prev, page: newPage }));
-      window.scrollTo({ top: 120, behavior: 'smooth' });
+      resultsTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
@@ -255,7 +282,7 @@ export const ProductListingPage: React.FC<ProductListingPageProps> = ({
         {/* Page Title & Stats */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <h1 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
               {filters.lowStockOnly ? (
                 <>
                   <span className="text-rose-600 flex items-center gap-2">
@@ -278,29 +305,35 @@ export const ProductListingPage: React.FC<ProductListingPageProps> = ({
               </p>
             ) : (
               <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                Showing {filteredProducts.length} of {totalFilteredCount} verified pharmaceutical products
+                {totalFilteredCount === 0
+                  ? 'No products match these filters'
+                  : `Showing ${(currentPage - 1) * filters.limit + 1}–${(currentPage - 1) * filters.limit + filteredProducts.length} of ${totalFilteredCount} products`}
               </p>
             )}
           </div>
 
           {/* Controls: Grid/List View, Mobile Filter Trigger, Sort */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Mobile filter button */}
             <button
               id="mobile-filters-trigger-btn"
               type="button"
               onClick={() => setIsMobileFilterOpen(true)}
-              className="lg:hidden px-3.5 py-2 min-h-[40px] bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+              className="lg:hidden shrink-0 px-3.5 py-2 min-h-[40px] bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+              aria-label={activeFilterCount ? `Filters, ${activeFilterCount} active` : 'Filters'}
             >
               <Filter className="w-3.5 h-3.5 text-emerald-600" />
               <span>Filters</span>
-              {hasActiveFilters && (
-                <span className="w-2 h-2 rounded-full bg-emerald-700" />
+              {activeFilterCount > 0 && (
+                <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-700 text-white text-[11px] font-bold flex items-center justify-center">
+                  {activeFilterCount}
+                </span>
               )}
             </button>
 
             {/* Sort Dropdown */}
-            <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1.5 min-h-[40px] rounded-xl shadow-xs">
+            <label className="flex-1 md:flex-initial min-w-0 flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1.5 min-h-[40px] rounded-xl shadow-xs">
+              <span className="sr-only">Sort products</span>
               <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <select
                 id="sort-products-dropdown"
@@ -312,18 +345,18 @@ export const ProductListingPage: React.FC<ProductListingPageProps> = ({
                     page: 1,
                   }))
                 }
-                className="text-xs font-bold text-slate-700 bg-transparent focus:outline-hidden cursor-pointer"
+                className="w-full min-w-0 text-xs font-bold text-slate-700 bg-transparent focus:outline-hidden cursor-pointer"
               >
-                <option value="popularity">Popularity / Top Rated</option>
+                <option value="popularity">Most Popular</option>
                 <option value="price-asc">Price: Low to High</option>
                 <option value="price-desc">Price: High to Low</option>
                 <option value="newest">Newest Arrivals</option>
                 <option value="name-asc">Name: A to Z</option>
               </select>
-            </div>
+            </label>
 
             {/* Grid / List View Toggle */}
-            <div className="flex items-center bg-white border border-slate-200 p-1 min-h-[40px] rounded-xl shadow-xs">
+            <div className="shrink-0 flex items-center bg-white border border-slate-200 p-1 min-h-[40px] rounded-xl shadow-xs">
               <button
                 type="button"
                 onClick={() => setViewLayout('grid')}
@@ -333,6 +366,7 @@ export const ProductListingPage: React.FC<ProductListingPageProps> = ({
                     : 'text-slate-400 hover:text-slate-600'
                 }`}
                 aria-label="Grid View"
+                aria-pressed={viewLayout === 'grid'}
                 title="Grid View"
               >
                 <LayoutGrid className="w-4 h-4" />
@@ -346,6 +380,7 @@ export const ProductListingPage: React.FC<ProductListingPageProps> = ({
                     : 'text-slate-400 hover:text-slate-600'
                 }`}
                 aria-label="List View"
+                aria-pressed={viewLayout === 'list'}
                 title="List View"
               >
                 <List className="w-4 h-4" />
@@ -690,9 +725,9 @@ export const ProductListingPage: React.FC<ProductListingPageProps> = ({
         )}
 
         {/* Main Listing Layout: Left Sidebar + Right Products Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mt-6 items-start">
-          {/* Desktop Left Sidebar Filters */}
-          <div className="hidden lg:block lg:col-span-1">
+        <div ref={resultsTopRef} className="grid grid-cols-1 lg:grid-cols-4 gap-8 mt-4 sm:mt-6 items-start scroll-mt-28">
+          {/* Desktop Left Sidebar Filters (scrolls on its own when taller than the screen) */}
+          <div className="hidden lg:block lg:col-span-1 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto thin-scrollbar rounded-2xl">
             <ProductFiltersSidebar />
           </div>
 
@@ -717,7 +752,7 @@ export const ProductListingPage: React.FC<ProductListingPageProps> = ({
                 <div
                   className={
                     viewLayout === 'grid'
-                      ? 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4'
+                      ? 'grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4'
                       : 'space-y-4'
                   }
                 >
@@ -727,9 +762,9 @@ export const ProductListingPage: React.FC<ProductListingPageProps> = ({
                 </div>
 
                 {/* Pagination Controls */}
-                <div className="mt-8 p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+                <nav aria-label="Pagination" className="mt-8 p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
                   {/* Items per page selector */}
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500">
                     <span>Items per page:</span>
                     <select
                       value={filters.limit}
@@ -767,6 +802,8 @@ export const ProductListingPage: React.FC<ProductListingPageProps> = ({
                           key={p}
                           type="button"
                           onClick={() => handlePageChange(p)}
+                          aria-current={p === currentPage ? 'page' : undefined}
+                          aria-label={`Page ${p}`}
                           className={`w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
                             p === currentPage
                               ? 'bg-emerald-700 text-white shadow-xs'
@@ -789,7 +826,7 @@ export const ProductListingPage: React.FC<ProductListingPageProps> = ({
                   </div>
 
                   {/* Jump to Page */}
-                  <form onSubmit={handleJumpPage} className="flex items-center gap-2 text-xs">
+                  <form onSubmit={handleJumpPage} className={`${totalPages > 5 ? 'flex' : 'hidden sm:flex'} items-center gap-2 text-xs`}>
                     <span className="text-slate-500">Jump to:</span>
                     <input
                       type="number"
@@ -807,7 +844,7 @@ export const ProductListingPage: React.FC<ProductListingPageProps> = ({
                       Go
                     </button>
                   </form>
-                </div>
+                </nav>
 
                 {/* Bottom Section: Open All Categories & Clear Filters */}
                 {filters.lowStockOnly && (
@@ -869,10 +906,29 @@ export const ProductListingPage: React.FC<ProductListingPageProps> = ({
           onClick={(e) => {
             if (e.target === e.currentTarget) setIsMobileFilterOpen(false);
           }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex justify-end animate-in fade-in duration-150"
+          className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-xs flex justify-end animate-in fade-in duration-150"
         >
-          <div className="w-full max-w-xs bg-white h-full shadow-2xl p-4 overflow-y-auto overscroll-contain">
-            <ProductFiltersSidebar onCloseMobile={() => setIsMobileFilterOpen(false)} />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Filter products"
+            className="w-full max-w-sm bg-white h-full shadow-2xl flex flex-col"
+          >
+            <div className="flex-1 overflow-y-auto overscroll-contain p-3">
+              <ProductFiltersSidebar onCloseMobile={() => setIsMobileFilterOpen(false)} />
+            </div>
+            <div className="shrink-0 p-3 border-t border-slate-200 bg-white pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileFilterOpen(false);
+                  resultsTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="w-full min-h-[44px] bg-emerald-700 hover:bg-emerald-800 active:scale-[0.98] text-white font-bold text-sm rounded-xl transition-colors cursor-pointer"
+              >
+                {totalFilteredCount === 0 ? 'No products match' : `Show ${totalFilteredCount} product${totalFilteredCount === 1 ? '' : 's'}`}
+              </button>
+            </div>
           </div>
         </div>
       )}
