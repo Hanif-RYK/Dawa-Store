@@ -59,15 +59,36 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
           <p className="text-sm text-slate-400 max-w-md mb-6">
             We recovered from a display glitch. Tap below to return to the store safely.
           </p>
-          <button
-            onClick={() => {
-              this.setState({ hasError: false });
-              window.location.href = '/';
-            }}
-            className="px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-colors cursor-pointer"
-          >
-            Return to Storefront
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                this.setState({ hasError: false });
+                // BASE_URL keeps the /Dawa-Store/ prefix on GitHub Pages
+                window.location.href = import.meta.env.BASE_URL;
+              }}
+              className="px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-colors cursor-pointer"
+            >
+              Return to Storefront
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                // Last resort if saved data keeps breaking the page: clear this app's saved data and start fresh
+                try {
+                  Object.keys(localStorage)
+                    .filter((k) => k.startsWith('dawastore_'))
+                    .forEach((k) => localStorage.removeItem(k));
+                } catch {
+                  // storage blocked; nothing to clear
+                }
+                window.location.href = import.meta.env.BASE_URL;
+              }}
+              className="px-6 py-2.5 bg-transparent hover:bg-slate-800 text-slate-300 font-bold text-xs rounded-xl border border-slate-700 transition-colors cursor-pointer"
+            >
+              Reset saved data
+            </button>
+          </div>
         </div>
       );
     }
