@@ -258,7 +258,7 @@ export const HomePage: React.FC = () => {
 
           <div
             ref={scrollContainerRef}
-            className="flex items-start gap-2 overflow-x-auto py-3 px-1.5 no-scrollbar scroll-smooth"
+            className="flex items-start gap-2 overflow-x-auto py-2.5 px-1.5 no-scrollbar scroll-smooth"
           >
             {STORE_TABS.map((tab) => {
               const Icon = tab.icon;
@@ -276,16 +276,16 @@ export const HomePage: React.FC = () => {
                   }}
                   aria-pressed={isActive}
                   title={tab.name}
-                  className="group shrink-0 w-[68px] flex flex-col items-center gap-1.5 cursor-pointer"
+                  className="group shrink-0 w-[60px] flex flex-col items-center gap-1 cursor-pointer"
                 >
                   <span
-                    className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
+                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
                       isActive
                         ? 'bg-emerald-700 text-white ring-2 ring-emerald-700 ring-offset-2'
                         : `${style.tint} group-hover:scale-105`
                     }`}
                   >
-                    <Icon className="w-6 h-6" />
+                    <Icon className="w-5 h-5" />
                   </span>
                   <span
                     className={`text-xs leading-tight text-center ${
