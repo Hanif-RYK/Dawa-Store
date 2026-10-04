@@ -38,7 +38,7 @@ export const BackToTop: React.FC = () => {
     <button
       id="back-to-top-btn"
       onClick={scrollToTop}
-      className={`fixed ${offset} left-6 z-40 p-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 focus:outline-hidden focus:ring-4 focus:ring-emerald-300 flex items-center justify-center cursor-pointer group`}
+      className={`print:hidden fixed ${offset} left-6 z-40 p-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 focus:outline-hidden focus:ring-4 focus:ring-emerald-300 flex items-center justify-center cursor-pointer group`}
       aria-label="Back to top"
       title="Back to top"
     >
