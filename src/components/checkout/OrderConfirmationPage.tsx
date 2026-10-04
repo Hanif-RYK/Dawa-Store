@@ -16,6 +16,7 @@ import {
   Clock,
   FileSearch,
   Home,
+  Store,
 } from 'lucide-react';
 
 interface OrderConfirmationPageProps {
@@ -58,6 +59,7 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
 
   const hasRxItem = order.items.some((i) => i.isRxRequired || i.product?.isRxRequired);
   const isCod = order.paymentMethod === 'cod';
+  const isPickup = order.deliveryMethod === 'pickup';
   const total = order.totalAmount ?? order.total;
   const helplineTel = storeSettings.helpline.replace(/[^0-9+]/g, '');
   const whatsappHref = storeSettings.socialLinks.whatsapp;
@@ -78,8 +80,12 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
     hasRxItem
       ? { icon: FileSearch, title: 'Rx verification', text: 'Pharmacist checks your prescription' }
       : { icon: Package, title: 'Packing', text: 'Pharmacist packs your medicines' },
-    { icon: Truck, title: 'Out for delivery', text: 'Rider is on the way' },
-    { icon: Home, title: 'Delivered', text: isCod ? 'Pay the rider in cash' : 'Enjoy good health' },
+    isPickup
+      ? { icon: Store, title: 'Ready for pickup', text: "We'll call or WhatsApp you" }
+      : { icon: Truck, title: 'Out for delivery', text: 'Rider is on the way' },
+    isPickup
+      ? { icon: Home, title: 'Collected', text: isCod ? 'Pay at the counter' : 'Bring your order ID' }
+      : { icon: Home, title: 'Delivered', text: isCod ? 'Pay the rider in cash' : 'Enjoy good health' },
   ];
 
   return (
@@ -128,10 +134,12 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
               </div>
             </div>
             <div className="p-3 sm:p-4 min-w-0">
-              <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide">Estimated Delivery</span>
+              <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide">
+                {isPickup ? 'Ready for Pickup' : 'Estimated Delivery'}
+              </span>
               <p className="text-sm font-bold text-emerald-700 flex items-center gap-1 mt-0.5">
                 <Clock className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Today, 2-4 hrs</span>
+                <span>{isPickup ? 'Today, 1-2 hrs' : 'Today, 2-4 hrs'}</span>
               </p>
             </div>
           </div>
@@ -204,14 +212,24 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div className="p-4 bg-slate-50 rounded-xl">
               <span className="font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1 mb-2">
-                <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                Delivery Address
+                {isPickup ? <Store className="w-3.5 h-3.5 text-emerald-600" /> : <MapPin className="w-3.5 h-3.5 text-emerald-600" />}
+                {isPickup ? 'Store Pickup' : 'Delivery Address'}
               </span>
               <p className="font-bold text-slate-900 text-sm">{order.shippingAddress.fullName}</p>
-              <p className="text-slate-600 mt-0.5">{order.shippingAddress.addressLine}</p>
-              <p className="text-slate-600">
-                {order.shippingAddress.area}, {order.shippingAddress.city}
-              </p>
+              {isPickup ? (
+                <>
+                  <p className="text-slate-600 mt-0.5">Collect from {order.shippingAddress.area}</p>
+                  <p className="text-slate-600">{order.shippingAddress.addressLine}</p>
+                  <p className="text-slate-600">{storeSettings.operatingHours}</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-slate-600 mt-0.5">{order.shippingAddress.addressLine}</p>
+                  <p className="text-slate-600">
+                    {order.shippingAddress.area}, {order.shippingAddress.city}
+                  </p>
+                </>
+              )}
               <p className="text-slate-700 font-semibold mt-1">Phone: {order.shippingAddress.phone}</p>
             </div>
 
@@ -221,11 +239,11 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
                 Payment
               </span>
               <p className="font-bold text-slate-900 text-sm">
-                {PAYMENT_LABELS[order.paymentMethod] || PAYMENT_LABELS.bank}
+                {isPickup && isCod ? 'Pay at Counter (Cash)' : PAYMENT_LABELS[order.paymentMethod] || PAYMENT_LABELS.bank}
               </p>
               <p className="text-slate-500 mt-0.5">
                 {isCod ? (
-                  'Pay the rider when your order arrives'
+                  isPickup ? 'Pay in cash at the pharmacy counter' : 'Pay the rider when your order arrives'
                 ) : (
                   <>
                     Status:{' '}
@@ -273,7 +291,7 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
                 <dd className="font-semibold text-slate-900">Rs. {order.subtotal.toLocaleString()}</dd>
               </div>
               <div className="flex justify-between">
-                <dt>Delivery</dt>
+                <dt>{isPickup ? 'Store pickup' : 'Delivery'}</dt>
                 <dd className="font-semibold text-slate-900">
                   {order.deliveryFee === 0 ? <span className="text-emerald-600 font-bold">FREE</span> : `Rs. ${order.deliveryFee.toLocaleString()}`}
                 </dd>
@@ -285,7 +303,7 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
                 </div>
               )}
               <div className="pt-3 border-t border-slate-100 flex justify-between items-center text-sm font-black text-slate-900">
-                <dt>{isCod ? 'Amount due on delivery' : 'Total'}</dt>
+                <dt>{isCod ? (isPickup ? 'Amount due at pickup' : 'Amount due on delivery') : 'Total'}</dt>
                 <dd className="text-emerald-700 text-lg">Rs. {total.toLocaleString()}</dd>
               </div>
             </dl>
