@@ -144,12 +144,39 @@ const DEFAULT_FILTERS: FilterState = {
 
 const PharmacyContext = createContext<PharmacyContextType | undefined>(undefined);
 
+// Saved data can come from older versions of the app or be hand-edited; never let a bad shape crash a page.
+const readSavedArray = <T,>(key: string, fallback: T[], isValid: (item: any) => boolean): T[] => {
+  try {
+    const saved = localStorage.getItem(key);
+    if (!saved) return fallback;
+    const parsed = JSON.parse(saved);
+    return Array.isArray(parsed) ? parsed.filter(isValid) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const normalizeUser = (raw: any): User | null => {
+  if (!raw || typeof raw !== 'object') return null;
+  const email = typeof raw.email === 'string' ? raw.email : '';
+  return {
+    ...raw,
+    id: typeof raw.id === 'string' ? raw.id : 'usr-' + Date.now(),
+    name: typeof raw.name === 'string' && raw.name.trim() ? raw.name : email.split('@')[0] || 'Customer',
+    email,
+    phone: typeof raw.phone === 'string' ? raw.phone : '',
+    addresses: Array.isArray(raw.addresses)
+      ? raw.addresses.filter((a: any) => a && typeof a === 'object' && typeof a.id === 'string')
+      : [],
+  };
+};
+
 export const PharmacyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // 1. Persistence Loaders
   const [products, setProducts] = useState<Product[]>(() => {
     try {
-      const saved = localStorage.getItem('dawastore_products');
-      return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+      const saved = readSavedArray<Product>('dawastore_products', INITIAL_PRODUCTS, (p) => p && typeof p.id === 'string' && Array.isArray(p.images));
+      return saved.length ? saved : INITIAL_PRODUCTS;
     } catch {
       return INITIAL_PRODUCTS;
     }
@@ -159,8 +186,7 @@ export const PharmacyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
-      const saved = localStorage.getItem('dawastore_cart');
-      return saved ? JSON.parse(saved) : [];
+      return readSavedArray<CartItem>('dawastore_cart', [], (i) => i && i.product && typeof i.product.id === 'string' && typeof i.quantity === 'number');
     } catch {
       return [];
     }
@@ -168,8 +194,7 @@ export const PharmacyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const [wishlist, setWishlist] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem('dawastore_wishlist');
-      return saved ? JSON.parse(saved) : ['prod-panadol-500', 'prod-surbex-z'];
+      return readSavedArray<string>('dawastore_wishlist', ['prod-panadol-500', 'prod-surbex-z'], (id) => typeof id === 'string');
     } catch {
       return ['prod-panadol-500', 'prod-surbex-z'];
     }
@@ -180,8 +205,11 @@ export const PharmacyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const [orders, setOrders] = useState<Order[]>(() => {
     try {
-      const saved = localStorage.getItem('dawastore_orders');
-      return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+      return readSavedArray<Order>(
+        'dawastore_orders',
+        INITIAL_ORDERS,
+        (o) => o && typeof o.orderNumber === 'string' && Array.isArray(o.items) && o.shippingAddress && typeof o.shippingAddress === 'object'
+      );
     } catch {
       return INITIAL_ORDERS;
     }
@@ -191,7 +219,8 @@ export const PharmacyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const saved = localStorage.getItem('dawastore_user');
       if (saved) {
-        const parsed = JSON.parse(saved);
+        const parsed = normalizeUser(JSON.parse(saved));
+        if (!parsed) return null;
         // The demo customer account (and older saved sessions without a role)
         // must never carry admin rights; staff sign in via the Staff Portal.
         if (parsed.id === 'usr-1' || (!parsed.role && parsed.isAdmin)) {
