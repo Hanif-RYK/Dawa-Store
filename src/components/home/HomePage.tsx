@@ -17,7 +17,26 @@ import {
   Store,
   ChevronLeft,
   ChevronRight,
+  Wind,
+  Monitor,
+  Plus,
 } from 'lucide-react';
+
+// Round category icons: short label (fits under a 56px circle) and a soft tint per category.
+// Full class strings so Tailwind can see them.
+const TAB_STYLE: Record<string, { label: string; tint: string }> = {
+  all: { label: 'All', tint: 'bg-emerald-50 text-emerald-700' },
+  'fever-pain': { label: 'Fever & Pain', tint: 'bg-rose-50 text-rose-700' },
+  stomach: { label: 'Stomach', tint: 'bg-amber-50 text-amber-700' },
+  antibiotics: { label: 'Antibiotics', tint: 'bg-indigo-50 text-indigo-700' },
+  cardiac: { label: 'Heart & BP', tint: 'bg-rose-50 text-rose-700' },
+  diabetes: { label: 'Diabetes', tint: 'bg-sky-50 text-sky-700' },
+  respiratory: { label: 'Cough & Cold', tint: 'bg-sky-50 text-sky-700' },
+  vitamins: { label: 'Vitamins', tint: 'bg-amber-50 text-amber-700' },
+  devices: { label: 'Devices', tint: 'bg-slate-100 text-slate-600' },
+  'first-aid': { label: 'First Aid', tint: 'bg-emerald-50 text-emerald-700' },
+  baby: { label: 'Baby Care', tint: 'bg-pink-50 text-pink-700' },
+};
 
 interface TabItem {
   id: string;
@@ -128,7 +147,7 @@ export const HomePage: React.FC = () => {
       {
         id: 'respiratory',
         name: 'Cough, Cold & Allergy',
-        icon: Activity,
+        icon: Wind,
         filterFn: (p) =>
           p.subcategoryId === 'respiratory-rx' ||
           p.subcategoryId === 'cough-cold' ||
@@ -149,7 +168,7 @@ export const HomePage: React.FC = () => {
       {
         id: 'devices',
         name: 'Medical Devices & BP Monitors',
-        icon: Activity,
+        icon: Monitor,
         filterFn: (p) =>
           p.categoryId === 'medical-devices' ||
           /monitor|glucometer|thermometer|nebulizer|device|gauge/i.test(
@@ -159,7 +178,7 @@ export const HomePage: React.FC = () => {
       {
         id: 'first-aid',
         name: 'First Aid & Antiseptics',
-        icon: ShieldCheck,
+        icon: Plus,
         filterFn: (p) =>
           p.categoryId === 'personal-care' ||
           /bandage|pyodine|dettol|saniplast|cotton|antiseptic|gauze|first aid/i.test(
@@ -203,7 +222,7 @@ export const HomePage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-3 sm:px-6 relative">
           {/* Left scroll affordance & button */}
           {canScrollLeft && (
-            <div className="absolute left-1 sm:left-3 top-1/2 -translate-y-1/2 z-20 flex items-center">
+            <div className="absolute left-1 sm:left-3 top-10 -translate-y-1/2 z-20 flex items-center">
               <button
                 type="button"
                 onClick={() => handleScroll('left')}
@@ -221,7 +240,7 @@ export const HomePage: React.FC = () => {
 
           {/* Right scroll affordance & button */}
           {canScrollRight && (
-            <div className="absolute right-1 sm:right-3 top-1/2 -translate-y-1/2 z-20 flex items-center">
+            <div className="absolute right-1 sm:right-3 top-10 -translate-y-1/2 z-20 flex items-center">
               <button
                 type="button"
                 onClick={() => handleScroll('right')}
@@ -239,11 +258,12 @@ export const HomePage: React.FC = () => {
 
           <div
             ref={scrollContainerRef}
-            className="flex items-center gap-2 overflow-x-auto py-2.5 px-1 no-scrollbar scroll-smooth"
+            className="flex items-start gap-2 overflow-x-auto py-3 px-1.5 no-scrollbar scroll-smooth"
           >
             {STORE_TABS.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
+              const style = TAB_STYLE[tab.id] ?? { label: tab.name, tint: 'bg-slate-100 text-slate-600' };
               return (
                 <button
                   key={tab.id}
@@ -254,12 +274,26 @@ export const HomePage: React.FC = () => {
                     const el = document.getElementById(`scrolling-category-tab-${tab.id}`);
                     el?.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
                   }}
-                  className={`group shrink-0 w-auto min-w-max flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border ${isActive ? 'text-white bg-emerald-700 border-emerald-600 shadow-xs' : 'text-slate-600 bg-slate-50 hover:text-slate-900 border-slate-200 hover:bg-slate-100/80 hover:border-slate-300'}`}
+                  aria-pressed={isActive}
+                  title={tab.name}
+                  className="group shrink-0 w-[68px] flex flex-col items-center gap-1.5 cursor-pointer"
                 >
-                  <Icon
-                    className={`w-3.5 h-3.5 shrink-0 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-emerald-600'}`}
-                  />
-                  <span className="whitespace-nowrap inline-block">{tab.name}</span>
+                  <span
+                    className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
+                      isActive
+                        ? 'bg-emerald-700 text-white ring-2 ring-emerald-700 ring-offset-2'
+                        : `${style.tint} group-hover:scale-105`
+                    }`}
+                  >
+                    <Icon className="w-6 h-6" />
+                  </span>
+                  <span
+                    className={`text-xs leading-tight text-center ${
+                      isActive ? 'font-bold text-emerald-800' : 'font-semibold text-slate-700'
+                    }`}
+                  >
+                    {style.label}
+                  </span>
                 </button>
               );
             })}
