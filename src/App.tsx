@@ -104,7 +104,7 @@ const AppContent: React.FC = () => {
     }
 
     // 2. User Account
-    if (currentPath === '/account' || currentPath.startsWith('/account/')) {
+    if (currentPath === '/account' || currentPath.startsWith('/account/') || currentPath.startsWith('/account?')) {
       return <UserAccountPage />;
     }
 

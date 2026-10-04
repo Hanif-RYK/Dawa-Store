@@ -45,7 +45,7 @@ export const Footer: React.FC = () => {
     setEmail('');
   };
   return (
-    <footer id="app-footer" className="bg-slate-900 text-slate-300 pt-12 pb-8 border-t border-slate-800">
+    <footer id="app-footer" className="print:hidden bg-slate-900 text-slate-300 pt-12 pb-8 border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pb-10 border-b border-slate-800">
           <div className="flex items-start gap-3.5">

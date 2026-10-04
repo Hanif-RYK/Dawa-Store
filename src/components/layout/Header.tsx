@@ -67,7 +67,7 @@ export const Header: React.FC = () => {
 
   return (
     <>
-      <header id="app-header" className="sticky top-0 z-50 bg-white border-b border-slate-200">
+      <header id="app-header" className="print:hidden sticky top-0 z-50 bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <button

@@ -10,7 +10,7 @@ export const ToastContainer: React.FC = () => {
   return (
     <div
       id="toast-container"
-      className="fixed bottom-5 left-4 right-4 sm:left-auto sm:right-5 sm:w-auto sm:max-w-sm z-50 flex flex-col gap-2.5 pointer-events-none items-center sm:items-end"
+      className="print:hidden fixed bottom-5 left-4 right-4 sm:left-auto sm:right-5 sm:w-auto sm:max-w-sm z-50 flex flex-col gap-2.5 pointer-events-none items-center sm:items-end"
     >
       {toasts.map((toast) => {
         let bgColor = 'bg-slate-900 text-white';

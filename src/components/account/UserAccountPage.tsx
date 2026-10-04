@@ -43,6 +43,7 @@ export const UserAccountPage: React.FC = () => {
     addToast,
     updateProfile,
     setIsAuthModalOpen,
+    currentPath,
   } = usePharmacy();
 
   // Tab: 'profile' | 'orders' | 'prescriptions' | 'addresses' | 'wishlist'
@@ -50,19 +51,16 @@ export const UserAccountPage: React.FC = () => {
     'profile' | 'orders' | 'prescriptions' | 'addresses' | 'wishlist'
   >('orders');
 
-  // Synchronize tab from URL query param, e.g. /account?tab=wishlist
+  // Synchronize tab from the route's query, e.g. /account?tab=wishlist (hash routing keeps it in currentPath)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const tabParam = params.get('tab');
-      if (
-        tabParam &&
-        ['profile', 'orders', 'prescriptions', 'addresses', 'wishlist'].includes(tabParam)
-      ) {
-        setActiveTab(tabParam as any);
-      }
+    const tabParam = new URLSearchParams(currentPath.split('?')[1] || '').get('tab');
+    if (
+      tabParam &&
+      ['profile', 'orders', 'prescriptions', 'addresses', 'wishlist'].includes(tabParam)
+    ) {
+      setActiveTab(tabParam as any);
     }
-  }, []);
+  }, [currentPath]);
 
   // Profile Edit State
   const [name, setName] = useState(user?.name || '');
