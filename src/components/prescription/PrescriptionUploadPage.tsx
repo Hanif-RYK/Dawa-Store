@@ -15,39 +15,11 @@ import {
   User,
   MapPin,
   Truck,
-  Sparkles,
   Info,
   Clock,
   ShieldAlert,
   ChevronRight,
 } from 'lucide-react';
-
-const SAMPLE_PRESCRIPTIONS = [
-  {
-    id: 'sample-1',
-    title: 'Cardiology & Blood Pressure Rx',
-    doctor: 'Dr. Tariq Shah, FCPS (Cardiology), NICVD Karachi',
-    medicines: 'Lipiget 20mg, Concor 5mg, Lowplat 75mg',
-    image:
-      'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=800&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'sample-2',
-    title: 'Diabetes & Metabolism Rx',
-    doctor: 'Dr. Ayesha Siddiqui, Consultant Endocrinologist',
-    medicines: 'Glucophage 500mg, Jardiance 10mg, Januvia 100mg',
-    image:
-      'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'sample-3',
-    title: 'General Physician & Antibiotic Slip',
-    doctor: 'Dr. Muhammad Kamran, MBBS, Shifa International',
-    medicines: 'Augmentin 625mg, Panadol CF, Risek 20mg',
-    image:
-      'https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=800&auto=format&fit=crop&q=80',
-  },
-];
 
 const MAX_RX_FILE_BYTES = 10 * 1024 * 1024;
 // Pakistani mobile: 03XXXXXXXXX, +923XXXXXXXXX or 00923XXXXXXXXX (spaces and dashes ignored)
@@ -521,42 +493,6 @@ export const PrescriptionUploadPage: React.FC = () => {
                     {errors.rxImage}
                   </p>
                 )}
-              </div>
-
-              {/* Sample Prescriptions Selector (1-click prototype testing) */}
-              <div className="mt-5 pt-4 border-t border-slate-100">
-                <div className="flex items-center justify-between mb-2.5">
-                  <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    Demo: try a sample prescription
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  {SAMPLE_PRESCRIPTIONS.map((samp) => (
-                    <button
-                      key={samp.id}
-                      type="button"
-                      onClick={() => {
-                        setRxImage(samp.image);
-                        setRxFileName(samp.title);
-                        addToast({
-                          type: 'info',
-                          title: 'Sample Selected',
-                          message: `Loaded ${samp.title}`,
-                        });
-                      }}
-                      className={`p-2.5 rounded-xl border text-left text-xs transition-all cursor-pointer ${
-                        rxImage === samp.image
-                          ? 'border-emerald-600 bg-emerald-50 text-emerald-950 shadow-xs'
-                          : 'border-slate-200 hover:border-slate-300 bg-white'
-                      }`}
-                    >
-                      <div className="font-bold text-slate-900 truncate">{samp.title}</div>
-                      <div className="text-xs text-slate-500 truncate mt-0.5">{samp.doctor}</div>
-                    </button>
-                  ))}
-                </div>
               </div>
 
               {/* WhatsApp Alternative */}
