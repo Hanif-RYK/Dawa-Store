@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ShoppingBag,
+  Truck,
   Tag,
   ShieldCheck,
   ShieldAlert,
@@ -71,9 +72,12 @@ export const CartPage: React.FC = () => {
   }
 
   const hasRxItem = cart.some((i) => i.product.isRxRequired);
+  const freeDeliveryThreshold = storeSettings?.freeDeliveryThreshold ?? 2000;
+  const amountToFreeDelivery = Math.max(0, freeDeliveryThreshold - cartSubtotal);
+  const freeDeliveryProgress = Math.min(100, (cartSubtotal / freeDeliveryThreshold) * 100);
 
   return (
-    <div className="min-h-screen bg-slate-50 py-6">
+    <div className="min-h-screen bg-slate-50 pt-6 pb-28 lg:pb-6">
       <Breadcrumbs items={[{ label: 'Shopping Cart' }]} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-6">
@@ -109,13 +113,36 @@ export const CartPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           {/* Cart Items Table */}
           <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
-              <span className="text-sm font-bold text-slate-800">
+            <div className="p-4 sm:p-5 border-b border-slate-100 space-y-3">
+              <span className="block text-sm font-bold text-slate-800">
                 Cart Items ({cart.reduce((s, i) => s + i.quantity, 0)})
               </span>
-              <span className="text-xs text-slate-400 font-medium">
-                Free Delivery on orders above Rs. {(storeSettings?.freeDeliveryThreshold ?? 2000).toLocaleString()}
-              </span>
+              {/* Show how close the order is to free delivery, like the mini cart */}
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+                <div className="flex items-center justify-between gap-3 text-xs mb-2">
+                  <span className="flex items-center gap-1.5 font-semibold text-emerald-900">
+                    <Truck className="w-4 h-4 text-emerald-700 shrink-0" />
+                    {amountToFreeDelivery === 0 ? (
+                      <span className="font-bold text-emerald-800">You unlocked FREE Express Delivery!</span>
+                    ) : (
+                      <span>
+                        Add <strong className="text-emerald-800">Rs. {amountToFreeDelivery.toLocaleString()}</strong> more for FREE delivery
+                      </span>
+                    )}
+                  </span>
+                  <span className="font-bold text-emerald-700 shrink-0">{Math.round(freeDeliveryProgress)}%</span>
+                </div>
+                <div
+                  className="w-full h-1.5 bg-emerald-200/70 rounded-full overflow-hidden"
+                  role="progressbar"
+                  aria-label="Progress to free delivery"
+                  aria-valuenow={Math.round(freeDeliveryProgress)}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
+                  <div className="h-full bg-emerald-600 rounded-full transition-all duration-500" style={{ width: `${freeDeliveryProgress}%` }} />
+                </div>
+              </div>
             </div>
 
             <div className="divide-y divide-slate-100">
@@ -124,11 +151,11 @@ export const CartPage: React.FC = () => {
                   key={item.product.id}
                   className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
                 >
-                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <div className="flex items-center gap-4 flex-1 min-w-0 w-full sm:w-auto">
                     <img
                       src={item.product.images[0]}
                       alt={item.product.name}
-                      className="w-20 h-20 object-contain bg-slate-50 border border-slate-200 rounded-xl p-1.5 shrink-0"
+                      className="w-20 h-20 object-cover bg-slate-100 border border-slate-200 rounded-xl shrink-0"
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -143,7 +170,7 @@ export const CartPage: React.FC = () => {
                       </div>
                       <h3
                         onClick={() => navigate(`/product/${item.product.slug}`)}
-                        className="text-sm sm:text-base font-bold text-slate-900 hover:text-emerald-700 transition-colors cursor-pointer truncate"
+                        className="text-sm sm:text-base font-bold text-slate-900 hover:text-emerald-700 transition-colors cursor-pointer line-clamp-2"
                       >
                         {item.product.name}
                       </h3>
@@ -300,6 +327,22 @@ export const CartPage: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Mobile: total and checkout stay in reach while scrolling the item list */}
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-4px_12px_rgba(15,23,43,0.06)] px-4 py-3 flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <span className="block text-xs text-slate-500">Total ({cart.reduce((s, i) => s + i.quantity, 0)} items)</span>
+          <span className="block text-lg font-extrabold text-slate-900 leading-tight">Rs. {cartTotal.toLocaleString()}</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate('/checkout')}
+          className="shrink-0 px-5 py-3 min-h-[48px] bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 active:scale-[0.98] text-white text-sm font-bold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+        >
+          <span>Checkout</span>
+          <ArrowRight className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Item Remove Confirmation Modal */}
