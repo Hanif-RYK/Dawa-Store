@@ -86,6 +86,7 @@ interface PharmacyContextType {
     prescriptionImage?: string;
     whatsappPhone?: string;
     notes?: string;
+    deliveryMethod?: 'delivery' | 'pickup';
   }) => Promise<Order>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   reorder: (orderId: string) => void;
@@ -878,6 +879,7 @@ export const PharmacyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     prescriptionImage?: string;
     whatsappPhone?: string;
     notes?: string;
+    deliveryMethod?: 'delivery' | 'pickup';
   }): Promise<Order> => {
     // Generate order
     const isDirectRx = orderData.items.length === 0;
@@ -889,7 +891,8 @@ export const PharmacyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       0
     );
     const disc = Math.round(sub * promoDiscountRate);
-    const delFee = isDirectRx ? 0 : sub >= (storeSettings?.freeDeliveryThreshold ?? 2000) ? 0 : (storeSettings?.deliveryFee ?? 150);
+    const isPickup = orderData.deliveryMethod === 'pickup';
+    const delFee = isDirectRx || isPickup ? 0 : sub >= (storeSettings?.freeDeliveryThreshold ?? 2000) ? 0 : (storeSettings?.deliveryFee ?? 150);
     const tot = sub - disc + delFee;
 
     const items = isDirectRx
@@ -939,7 +942,10 @@ export const PharmacyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       notes: orderData.notes,
       estimatedDelivery: isDirectRx
         ? 'Pharmacist reviewing Rx — Call confirmation within 15 mins'
+        : isPickup
+        ? 'Ready for counter pickup within 1-2 hours'
         : 'Today within 2-4 Hours (Express Pharmacy Courier)',
+      deliveryMethod: isPickup ? 'pickup' : 'delivery',
     };
 
     setOrders((prev) => [newOrder, ...prev]);

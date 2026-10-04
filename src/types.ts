@@ -134,6 +134,8 @@ export interface Order {
   whatsappPhone?: string;
   notes?: string;
   estimatedDelivery: string;
+  // 'pickup' = customer collects from the pharmacy counter (no delivery fee)
+  deliveryMethod?: 'delivery' | 'pickup';
 }
 
 export interface User {

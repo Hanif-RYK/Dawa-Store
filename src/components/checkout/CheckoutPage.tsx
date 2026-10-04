@@ -17,6 +17,8 @@ import {
   ShieldAlert,
   Phone,
   Truck,
+  Store,
+  Clock,
   Lock,
   Banknote,
   Building2,
@@ -39,6 +41,7 @@ export const CheckoutPage: React.FC = () => {
     addToast,
     currentPath,
     paymentSettings,
+    storeSettings,
   } = usePharmacy();
 
   // Multi-step: 1 = Address, 2 = Prescription, 3 = Payment, 4 = Review
@@ -56,6 +59,12 @@ export const CheckoutPage: React.FC = () => {
 
   const hasRxItem = cart.some((i) => i.product.isRxRequired);
 
+  // Step 1: Home delivery or collect from the pharmacy counter (pickup has no delivery fee)
+  const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
+  const isPickup = deliveryMethod === 'pickup';
+  const deliveryFee = isPickup ? 0 : cartDeliveryFee;
+  const payableTotal = cartTotal - cartDeliveryFee + deliveryFee;
+
   // Step 1: Address State
   const defaultAddr = user?.addresses.find((a) => a.isDefault) || user?.addresses[0];
   const [selectedAddressId, setSelectedAddressId] = useState<string>(defaultAddr?.id || 'new');
@@ -72,10 +81,9 @@ export const CheckoutPage: React.FC = () => {
   const [addressErrors, setAddressErrors] = useState<Record<string, string>>({});
 
   // Step 2: Prescription State
-  const [rxFile, setRxFile] = useState<string | null>(
-    'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=800&auto=format&fit=crop&q=80'
-  );
-  const [rxFileName, setRxFileName] = useState('Doctor_Prescription_Cardiology.jpg');
+  // Starts empty so an order can't go out with a sample prescription attached
+  const [rxFile, setRxFile] = useState<string | null>(null);
+  const [rxFileName, setRxFileName] = useState('');
   const [whatsappPhone, setWhatsappPhone] = useState(user?.phone || '+92 ');
   const [rxOption, setRxOption] = useState<'upload' | 'whatsapp' | 'later'>('upload');
 
@@ -159,6 +167,16 @@ export const CheckoutPage: React.FC = () => {
 
   // Handle Address validation
   const validateAddress = () => {
+    if (isPickup) {
+      // Pickup only needs who is collecting and a number to call when it's ready
+      const errs: Record<string, string> = {};
+      if (!fullName.trim()) errs.fullName = 'Name of the person collecting is required';
+      if (!/^(?:\+92|0092|0)3\d{9}$/.test(phone.replace(/[\s-]/g, ''))) {
+        errs.phone = 'Enter a valid mobile number, e.g. 0300 1234567';
+      }
+      setAddressErrors(errs);
+      return Object.keys(errs).length === 0;
+    }
     if (!isAddingNewAddress && selectedAddressId !== 'new') return true;
     const errs: Record<string, string> = {};
     if (!fullName.trim()) errs.fullName = 'Full name is required';
@@ -171,6 +189,19 @@ export const CheckoutPage: React.FC = () => {
   };
 
   const getEffectiveAddress = (): Address => {
+    if (isPickup) {
+      return {
+        id: 'addr-pickup',
+        fullName,
+        phone,
+        email,
+        addressLine: storeSettings.address,
+        city: 'Store Pickup',
+        area: storeSettings.pharmacyName,
+        landmark: '',
+        isDefault: false,
+      };
+    }
     if (!isAddingNewAddress && selectedAddressId !== 'new') {
       const found = user?.addresses.find((a) => a.id === selectedAddressId);
       if (found) return found;
@@ -191,7 +222,7 @@ export const CheckoutPage: React.FC = () => {
   const handleNextStep = () => {
     if (currentStep === 1) {
       if (!validateAddress()) return;
-      if (isAddingNewAddress) {
+      if (!isPickup && isAddingNewAddress) {
         addAddress({
           fullName,
           phone,
@@ -281,6 +312,7 @@ export const CheckoutPage: React.FC = () => {
         prescriptionImage: rxOption === 'upload' ? rxFile || undefined : undefined,
         whatsappPhone: rxOption === 'whatsapp' ? whatsappPhone : undefined,
         notes: finalNotes,
+        deliveryMethod,
       });
 
       navigate(`/order-confirmation/${order.orderNumber}`);
@@ -373,13 +405,110 @@ export const CheckoutPage: React.FC = () => {
                 <div className="border-b border-slate-100 pb-4">
                   <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                     <MapPin className="w-5 h-5 text-emerald-600" />
-                    <span>Step 1: Choose or Enter Delivery Address</span>
+                    <span>Step 1: {isPickup ? 'Store Pickup Details' : 'Choose or Enter Delivery Address'}</span>
                   </h2>
                   <p className="text-xs text-slate-500 mt-1">
-                    Provide exact address and phone number for the rider to deliver your medicines safely.
+                    {isPickup
+                      ? 'Collect your medicines from our pharmacy counter. No delivery fee.'
+                      : 'Provide exact address and phone number for the rider to deliver your medicines safely.'}
                   </p>
                 </div>
 
+                {/* Delivery or pickup */}
+                <div role="radiogroup" aria-label="How would you like to receive your order?" className="grid grid-cols-2 gap-3">
+                  {[
+                    {
+                      id: 'delivery' as const,
+                      icon: Truck,
+                      title: 'Home Delivery',
+                      text: cartDeliveryFee === 0 ? 'Free • 2-4 hours' : `Rs. ${cartDeliveryFee} • 2-4 hours`,
+                    },
+                    { id: 'pickup' as const, icon: Store, title: 'Store Pickup', text: 'Free • Ready in 1-2 hours' },
+                  ].map((opt) => {
+                    const Icon = opt.icon;
+                    const selected = deliveryMethod === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        onClick={() => {
+                          setDeliveryMethod(opt.id);
+                          setAddressErrors({});
+                        }}
+                        className={`p-3 sm:p-4 rounded-xl border-2 text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                          selected ? 'border-emerald-600 bg-emerald-50/50 shadow-xs' : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <Icon className={`w-5 h-5 shrink-0 mt-0.5 ${selected ? 'text-emerald-700' : 'text-slate-400'}`} />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-bold text-slate-900">{opt.title}</span>
+                          <span className="block text-xs text-slate-500">{opt.text}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {isPickup && (
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2">
+                      <p className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                        <Store className="w-4 h-4 text-emerald-600" />
+                        {storeSettings.pharmacyName}
+                      </p>
+                      <p className="text-slate-600 flex items-start gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                        {storeSettings.address}
+                      </p>
+                      <p className="text-slate-600 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        {storeSettings.operatingHours}
+                      </p>
+                      <p className="text-emerald-800 font-semibold">
+                        We'll call or WhatsApp you when it's ready. Bring your order number; Rx medicines need the original prescription.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="pickup-name" className="block text-xs font-semibold text-slate-700 mb-1">
+                          Person Collecting *
+                        </label>
+                        <input
+                          id="pickup-name"
+                          type="text"
+                          autoComplete="name"
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          aria-invalid={!!addressErrors.fullName}
+                          className="w-full px-3.5 py-2.5 text-base sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-500"
+                        />
+                        {addressErrors.fullName && <p className="text-xs text-rose-600 mt-1">{addressErrors.fullName}</p>}
+                      </div>
+                      <div>
+                        <label htmlFor="pickup-phone" className="block text-xs font-semibold text-slate-700 mb-1">
+                          Mobile Number *
+                        </label>
+                        <input
+                          id="pickup-phone"
+                          type="tel"
+                          inputMode="tel"
+                          autoComplete="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          aria-invalid={!!addressErrors.phone}
+                          placeholder="0300 1234567"
+                          className="w-full px-3.5 py-2.5 text-base sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-500"
+                        />
+                        {addressErrors.phone && <p className="text-xs text-rose-600 mt-1">{addressErrors.phone}</p>}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!isPickup && (<>
                 {/* Saved addresses options if available */}
                 {user && user.addresses.length > 0 && !isAddingNewAddress && (
                   <div className="space-y-3">
@@ -550,6 +679,7 @@ export const CheckoutPage: React.FC = () => {
                     </div>
                   </div>
                 )}
+                </>)}
               </div>
             )}
 
@@ -746,14 +876,16 @@ export const CheckoutPage: React.FC = () => {
                       <div className="flex-1">
                         <div className="flex items-start justify-between gap-2">
                           <span className="text-sm font-bold text-slate-900">
-                            Cash on Delivery (COD)
+                            {isPickup ? 'Pay at Counter (Cash)' : 'Cash on Delivery (COD)'}
                           </span>
                           <span className="shrink-0 whitespace-nowrap text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
                             Recommended
                           </span>
                         </div>
                         <p className="text-xs text-slate-500 mt-0.5">
-                          {paymentSettings.cod.instructions || 'Pay in cash or QR code when our rider arrives at your doorstep.'}
+                          {isPickup
+                            ? 'Pay in cash when you collect your order at the pharmacy counter.'
+                            : paymentSettings.cod.instructions || 'Pay in cash or QR code when our rider arrives at your doorstep.'}
                         </p>
                       </div>
                     </label>
@@ -835,7 +967,7 @@ export const CheckoutPage: React.FC = () => {
                                 )}
 
                                 <p className="text-xs text-slate-500">
-                                  Please transfer Rs. {cartTotal.toLocaleString()} to the number above via JazzCash App or *786#, then enter your details:
+                                  Please transfer Rs. {payableTotal.toLocaleString()} to the number above via JazzCash App or *786#, then enter your details:
                                 </p>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
@@ -943,7 +1075,7 @@ export const CheckoutPage: React.FC = () => {
                                 </div>
 
                                 <p className="text-xs text-slate-500">
-                                  Please transfer Rs. {cartTotal.toLocaleString()} to the Easypaisa number above, then enter your details:
+                                  Please transfer Rs. {payableTotal.toLocaleString()} to the Easypaisa number above, then enter your details:
                                 </p>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
@@ -1203,8 +1335,8 @@ export const CheckoutPage: React.FC = () => {
                   <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                        Delivery To
+                        {isPickup ? <Store className="w-3.5 h-3.5 text-emerald-600" /> : <MapPin className="w-3.5 h-3.5 text-emerald-600" />}
+                        {isPickup ? 'Store Pickup' : 'Delivery To'}
                       </span>
                       <button
                         type="button"
@@ -1219,8 +1351,17 @@ export const CheckoutPage: React.FC = () => {
                       return (
                         <div className="space-y-0.5 text-slate-600">
                           <p className="font-bold text-slate-900">{addr.fullName}</p>
-                          <p>{addr.addressLine}</p>
-                          <p>{addr.area}, {addr.city}</p>
+                          {isPickup ? (
+                            <>
+                              <p>Collect from {storeSettings.pharmacyName}</p>
+                              <p>{storeSettings.address}</p>
+                            </>
+                          ) : (
+                            <>
+                              <p>{addr.addressLine}</p>
+                              <p>{addr.area}, {addr.city}</p>
+                            </>
+                          )}
                           <p className="font-semibold text-emerald-800">{addr.phone}</p>
                         </div>
                       );
@@ -1243,7 +1384,9 @@ export const CheckoutPage: React.FC = () => {
                     </div>
                     <p className="font-bold text-slate-900 capitalize">
                       {paymentMethod === 'cod'
-                        ? 'Cash on Delivery (COD)'
+                        ? isPickup
+                          ? 'Pay at Counter (Cash)'
+                          : 'Cash on Delivery (COD)'
                         : paymentMethod === 'card'
                         ? 'Credit / Debit Card'
                         : paymentMethod === 'jazzcash'
@@ -1258,7 +1401,7 @@ export const CheckoutPage: React.FC = () => {
                       </p>
                     )}
                     <p className="text-slate-500 mt-1">
-                      Estimated Delivery: Today within 2-4 hours.
+                      {isPickup ? 'Ready for pickup in 1-2 hours.' : 'Estimated Delivery: Today within 2-4 hours.'}
                     </p>
                   </div>
                 </div>
@@ -1327,7 +1470,7 @@ export const CheckoutPage: React.FC = () => {
                   ) : (
                     <Lock className="w-4 h-4" />
                   )}
-                  <span>Place Order (Rs. {cartTotal.toLocaleString()})</span>
+                  <span>Place Order (Rs. {payableTotal.toLocaleString()})</span>
                 </button>
               )}
             </div>
@@ -1348,12 +1491,12 @@ export const CheckoutPage: React.FC = () => {
               </div>
 
               <div className="flex items-center justify-between">
-                <span>Express Courier Delivery</span>
+                <span>{isPickup ? 'Store Pickup' : 'Express Courier Delivery'}</span>
                 <span className="font-semibold text-slate-900">
-                  {cartDeliveryFee === 0 ? (
+                  {deliveryFee === 0 ? (
                     <span className="text-emerald-600 font-bold">FREE</span>
                   ) : (
-                    `Rs. ${cartDeliveryFee}`
+                    `Rs. ${deliveryFee}`
                   )}
                 </span>
               </div>
@@ -1368,7 +1511,7 @@ export const CheckoutPage: React.FC = () => {
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-sm font-black text-slate-900">
                 <span>Payable Amount</span>
                 <span className="text-emerald-700 text-lg">
-                  Rs. {cartTotal.toLocaleString()}
+                  Rs. {payableTotal.toLocaleString()}
                 </span>
               </div>
             </div>
@@ -1376,7 +1519,7 @@ export const CheckoutPage: React.FC = () => {
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2 text-xs text-slate-500">
               <div className="flex items-center gap-2 text-slate-700 font-semibold">
                 <Truck className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Delivery: Today within 2-4 Hours</span>
+                <span>{isPickup ? 'Ready for pickup in 1-2 hours' : 'Delivery: Today within 2-4 Hours'}</span>
               </div>
               <div className="flex items-center gap-2 text-slate-700 font-semibold">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -1400,7 +1543,7 @@ export const CheckoutPage: React.FC = () => {
           </button>
           <div className="min-w-0 leading-tight">
             <p className="text-[11px] text-slate-500 font-medium">Payable</p>
-            <p className="text-base font-black text-emerald-700 whitespace-nowrap">Rs. {cartTotal.toLocaleString()}</p>
+            <p className="text-base font-black text-emerald-700 whitespace-nowrap">Rs. {payableTotal.toLocaleString()}</p>
           </div>
           {currentStep < 4 ? (
             <button
