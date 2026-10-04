@@ -15,7 +15,10 @@ export const AdminRevenueChart: React.FC<AdminRevenueChartProps> = ({ data }) =>
 
   if (!data || data.length === 0) return null;
 
-  const maxRevenue = 120000;
+  // Round the top of the axis up to a tidy step so small real totals don't sit flat on the floor
+  const peak = Math.max(...data.map((d) => d.revenue), 0);
+  const step = peak <= 4000 ? 1000 : peak <= 20000 ? 5000 : peak <= 60000 ? 15000 : 30000;
+  const maxRevenue = Math.max(step * 4, Math.ceil(peak / step) * step);
   const chartHeight = 200;
   const chartWidth = 700;
   const paddingLeft = 60;
@@ -46,10 +49,12 @@ export const AdminRevenueChart: React.FC<AdminRevenueChartProps> = ({ data }) =>
   // Area path closing down to the bottom
   const areaData = `${pathData} L ${points[points.length - 1].x},${paddingTop + innerHeight} L ${points[0].x},${paddingTop + innerHeight} Z`;
 
-  const yTicks = [120000, 90000, 60000, 30000, 0];
+  const yTicks = [4, 3, 2, 1, 0].map((i) => Math.round((maxRevenue / 4) * i));
 
   return (
-    <div className="relative w-full overflow-hidden select-none">
+    <div className="w-full overflow-x-auto thin-scrollbar select-none">
+    {/* Inner box carries the min width so the tooltip stays aligned while scrolling on phones */}
+    <div className="relative min-w-[560px]">
       <svg
         viewBox={`0 0 ${chartWidth} ${chartHeight}`}
         className="w-full h-56 sm:h-64"
@@ -85,7 +90,7 @@ export const AdminRevenueChart: React.FC<AdminRevenueChartProps> = ({ data }) =>
                 textAnchor="end"
                 fontWeight="500"
               >
-                Rs.{val === 0 ? '0' : `${val / 1000}k`}
+                Rs.{val === 0 ? '0' : val >= 1000 ? `${+(val / 1000).toFixed(1)}k` : val}
               </text>
             </g>
           );
@@ -173,16 +178,17 @@ export const AdminRevenueChart: React.FC<AdminRevenueChartProps> = ({ data }) =>
         >
           <div className="font-bold text-white flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span>{data[hoveredIndex].day} Sales Dispatch</span>
+            <span>{data[hoveredIndex].day}</span>
           </div>
           <div className="text-emerald-400 font-extrabold text-sm mt-0.5">
             Rs. {data[hoveredIndex].revenue.toLocaleString()}
           </div>
           <div className="text-slate-400 text-xs mt-0.5">
-            {data[hoveredIndex].orders} fulfilled orders
+            {data[hoveredIndex].orders} {data[hoveredIndex].orders === 1 ? 'order' : 'orders'}
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 };

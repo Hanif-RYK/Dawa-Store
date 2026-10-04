@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { usePharmacy } from '../../context/PharmacyContext';
 import { Product, Order, OrderStatus, DosageForm } from '../../types';
 import {
@@ -23,6 +23,8 @@ import {
   TrendingUp,
   X,
   Home,
+  LogOut,
+  MessageCircle,
   ArrowLeft,
   CreditCard,
   Building2,
@@ -35,15 +37,35 @@ import { formatOrderDate } from '../../utils/formatDate';
 
 
 // Sales trends data for chart
-const REVENUE_DATA = [
-  { day: 'Mon', revenue: 48500, orders: 24 },
-  { day: 'Tue', revenue: 62000, orders: 31 },
-  { day: 'Wed', revenue: 54200, orders: 28 },
-  { day: 'Thu', revenue: 78900, orders: 42 },
-  { day: 'Fri', revenue: 95400, orders: 53 },
-  { day: 'Sat', revenue: 112000, orders: 67 },
-  { day: 'Sun', revenue: 84300, orders: 48 },
+// Customer-facing names for order statuses (shared with the filter chips)
+const STATUS_LABEL: Record<OrderStatus, string> = {
+  Pending: 'Placed',
+  Confirmed: 'Processing',
+  Shipped: 'Shipped',
+  Delivered: 'Delivered',
+  Cancelled: 'Cancelled',
+};
+
+const RX_REJECT_REASONS = [
+  'Illegible / Blurry handwriting',
+  'Prescription expired',
+  "Doctor's name or stamp missing",
+  'Medicine not on prescription',
+  'Controlled drug needs original slip',
 ];
+
+type RxQueueItem = {
+  id: string;
+  orderId: string;
+  orderNumber: string;
+  patientName: string;
+  patientPhone: string;
+  date: string;
+  status: 'Pending Verification' | 'Approved' | 'Rejected';
+  image?: string;
+  medicines: string[];
+  notes?: string;
+};
 
 export const AdminDashboard: React.FC = () => {
   const {
@@ -57,6 +79,7 @@ export const AdminDashboard: React.FC = () => {
     addToast,
     navigate,
     currentPath,
+    logout,
   } = usePharmacy();
 
   // Parse query parameters helper for initial tab & filters
@@ -134,40 +157,66 @@ export const AdminDashboard: React.FC = () => {
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('All');
   const [selectedAdminOrder, setSelectedAdminOrder] = useState<Order | null>(null);
 
-  // Prescription Queue State
-  const [prescriptionQueue, setPrescriptionQueue] = useState([
-    {
-      id: 'rx-q-101',
-      patientName: 'Kashif Mehmood',
-      patientPhone: '+92 321 4455667',
-      orderNumber: 'DS-2026-904',
-      date: 'Today, 11:20 AM',
-      doctorName: 'Dr. Shahzad Latif (Pulmonologist)',
-      hospital: 'Liaquat National Hospital',
-      status: 'Pending Verification',
-      image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1000&auto=format&fit=crop&q=80',
-      medicines: ['Augmentin 625mg', 'Panadol Extra'],
-    },
-    {
-      id: 'rx-q-102',
-      patientName: 'Zainab Bibi',
-      patientPhone: '+92 300 8899112',
-      orderNumber: 'DS-2026-905',
-      date: 'Today, 09:45 AM',
-      doctorName: 'Dr. Noman Ali (Cardiology)',
-      hospital: 'NICVD Karachi',
-      status: 'Pending Verification',
-      image: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=1000&auto=format&fit=crop&q=80',
-      medicines: ['Lipiget 20mg'],
-    },
-  ]);
+  // Prescription queue = real orders that carry a prescription or Rx-only medicines.
+  // Pending orders wait for the pharmacist; approving moves the order to Processing, rejecting cancels it.
+  const prescriptionQueue: RxQueueItem[] = useMemo(
+    () =>
+      orders
+        .filter((o) => o.prescriptionImage || o.items.some((i) => i.isRxRequired))
+        .map((o) => ({
+          id: o.id,
+          orderId: o.id,
+          orderNumber: o.orderNumber,
+          patientName: o.shippingAddress.fullName,
+          patientPhone: o.whatsappPhone || o.shippingAddress.phone,
+          date: formatOrderDate(o.date, o.createdAt),
+          status:
+            o.status === 'Pending'
+              ? ('Pending Verification' as const)
+              : o.status === 'Cancelled'
+              ? ('Rejected' as const)
+              : ('Approved' as const),
+          image: o.prescriptionImage,
+          medicines: o.items.map((i) => i.productName),
+          notes: o.notes,
+        }))
+        // Waiting items first
+        .sort((a, b) => Number(b.status === 'Pending Verification') - Number(a.status === 'Pending Verification')),
+    [orders]
+  );
 
-  const [selectedRx, setSelectedRx] = useState<any>(null);
-  const [rxRejectReason, setRxRejectReason] = useState('Illegible / Blurry handwriting');
+  const [selectedRx, setSelectedRx] = useState<RxQueueItem | null>(null);
+  const [rxRejectReason, setRxRejectReason] = useState(RX_REJECT_REASONS[0]);
   const [pharmacistNote, setPharmacistNote] = useState('');
 
   // Calculations for Stats (respecting per-product lowStockThreshold with default 15)
-  const totalRevenue = orders.reduce((sum, o) => sum + (o.totalAmount ?? o.total ?? 0), 185400);
+  const activeOrders = orders.filter((o) => o.status !== 'Cancelled');
+  const totalRevenue = activeOrders.reduce((sum, o) => sum + (o.totalAmount ?? o.total ?? 0), 0);
+  const inProgressCount = orders.filter((o) => ['Pending', 'Confirmed', 'Shipped'].includes(o.status)).length;
+
+  // Revenue for each of the last 7 days, built from the orders in this store
+  const revenueData = useMemo(() => {
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() - (6 - i));
+      return d;
+    });
+    return days.map((d) => {
+      const next = new Date(d);
+      next.setDate(d.getDate() + 1);
+      const dayOrders = activeOrders.filter((o) => {
+        const t = new Date(o.createdAt).getTime();
+        return t >= d.getTime() && t < next.getTime();
+      });
+      return {
+        day: d.toLocaleDateString('en-PK', { weekday: 'short' }),
+        revenue: dayOrders.reduce((sum, o) => sum + (o.totalAmount ?? o.total ?? 0), 0),
+        orders: dayOrders.length,
+      };
+    });
+  }, [orders]);
+  const weekRevenue = revenueData.reduce((sum, d) => sum + d.revenue, 0);
   const lowStockCount = products.filter(
     (p) => p.stockCount <= (p.lowStockThreshold ?? 15)
   ).length;
@@ -189,7 +238,7 @@ export const AdminDashboard: React.FC = () => {
   // Filtered Orders
   const adminFilteredOrders = orders.filter((o) => {
     if (orderStatusFilter === 'All') return true;
-    return o.status === orderStatusFilter;
+    return STATUS_LABEL[o.status] === orderStatusFilter;
   });
 
   // Handle Add or Edit Product Submission
@@ -268,37 +317,36 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const handleApproveRx = (id: string) => {
-    setPrescriptionQueue((prev) =>
-      prev.map((r) =>
-        r.id === id ? { ...r, status: 'Approved', notes: pharmacistNote || 'Verified by Chief Pharmacist.' } : r
-      )
-    );
+    const item = prescriptionQueue.find((r) => r.id === id);
+    if (!item) return;
+    updateOrderStatus(item.orderId, 'Confirmed');
     setSelectedRx(null);
+    setPharmacistNote('');
     addToast({
       type: 'success',
       title: 'Prescription Approved',
-      message: 'Dispense clearance issued to pharmacy order dispatch.',
+      message: `Order #${item.orderNumber} moved to Processing for dispatch.`,
     });
   };
 
   const handleRejectRx = (id: string) => {
-    setPrescriptionQueue((prev) =>
-      prev.map((r) =>
-        r.id === id
-          ? {
-              ...r,
-              status: 'Rejected',
-              notes: `${rxRejectReason}: ${pharmacistNote}`,
-            }
-          : r
-      )
-    );
+    const item = prescriptionQueue.find((r) => r.id === id);
+    if (!item) return;
+    updateOrderStatus(item.orderId, 'Cancelled');
     setSelectedRx(null);
+    setPharmacistNote('');
     addToast({
       type: 'error',
       title: 'Prescription Rejected',
-      message: `Notification sent to patient: ${rxRejectReason}`,
+      message: `Order #${item.orderNumber} cancelled: ${rxRejectReason}. Let the patient know on WhatsApp.`,
     });
+  };
+
+  // wa.me link to the patient, with the rejection reason or approval pre-filled
+  const patientWhatsApp = (item: RxQueueItem, text: string) => {
+    const digits = item.patientPhone.replace(/\D/g, '');
+    const intl = digits.startsWith('92') ? digits : digits.startsWith('0') ? '92' + digits.slice(1) : digits;
+    return `https://wa.me/${intl}?text=${encodeURIComponent(text)}`;
   };
 
   return (
@@ -311,7 +359,6 @@ export const AdminDashboard: React.FC = () => {
               <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-black uppercase tracking-wider">
                 DRAP Pharmacy Management
               </span>
-              <span className="text-xs text-slate-400">v2.4 Live Store</span>
               <span className="text-xs text-emerald-400 font-bold px-2 py-0.5 bg-emerald-950/80 border border-emerald-800 rounded-md">
                 Admin Session Active
               </span>
@@ -340,11 +387,22 @@ export const AdminDashboard: React.FC = () => {
               <Plus className="w-4 h-4 text-emerald-400" />
               <span>Add Medicine</span>
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                logout();
+                navigate('/admin/login');
+              }}
+              className="px-4 py-2.5 bg-transparent hover:bg-rose-950/60 text-rose-300 text-xs font-bold rounded-xl flex items-center gap-1.5 border border-rose-900/60 cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sign Out</span>
+            </button>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="my-6 p-1.5 bg-slate-800 rounded-2xl border border-slate-700/80 flex flex-wrap items-center gap-2 shadow-inner relative z-10">
+        <nav aria-label="Admin sections" className="my-6 p-1.5 bg-slate-800 rounded-2xl border border-slate-700/80 flex items-center gap-2 overflow-x-auto thin-scrollbar shadow-inner relative z-10">
           {[
             { id: 'overview', label: 'Dashboard Overview', icon: TrendingUp },
             { id: 'products', label: 'Medicine Catalog', icon: Layers },
@@ -360,6 +418,7 @@ export const AdminDashboard: React.FC = () => {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id as any)}
+                aria-current={isActive ? 'page' : undefined}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 min-w-max ${
                   isActive
                     ? 'bg-emerald-700 text-white shadow-md shadow-emerald-900/40 ring-1 ring-emerald-400/30'
@@ -376,47 +435,47 @@ export const AdminDashboard: React.FC = () => {
               </button>
             );
           })}
-        </div>
+        </nav>
 
         {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
             {/* Stat Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {/* Stat 1 */}
-              <div className="p-5 rounded-2xl bg-slate-800/60 border border-slate-700/80 space-y-2">
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-800/60 border border-slate-700/80 space-y-2 min-w-0">
                 <div className="flex items-center justify-between text-slate-400">
                   <span className="text-xs font-bold uppercase tracking-wider">Total Sales</span>
                   <DollarSign className="w-4 h-4 text-emerald-400" />
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-white">
+                <div className="text-xl sm:text-3xl font-black text-white">
                   Rs. {totalRevenue.toLocaleString()}
                 </div>
                 <p className="text-xs text-emerald-400 flex items-center gap-1 font-semibold">
                   <ArrowUpRight className="w-3.5 h-3.5" />
-                  <span>+18.4% this week</span>
+                  <span>Rs. {weekRevenue.toLocaleString()} last 7 days</span>
                 </p>
               </div>
 
               {/* Stat 2 */}
-              <div className="p-5 rounded-2xl bg-slate-800/60 border border-slate-700/80 space-y-2">
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-800/60 border border-slate-700/80 space-y-2 min-w-0">
                 <div className="flex items-center justify-between text-slate-400">
                   <span className="text-xs font-bold uppercase tracking-wider">Total Orders</span>
                   <Package className="w-4 h-4 text-sky-400" />
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-white">
-                  {orders.length + 142}
+                <div className="text-xl sm:text-3xl font-black text-white">
+                  {orders.length}
                 </div>
-                <p className="text-xs text-sky-400 font-semibold">98.2% on-time 2hr delivery</p>
+                <p className="text-xs text-sky-400 font-semibold">{inProgressCount} in progress</p>
               </div>
 
               {/* Stat 3 */}
-              <div className="p-5 rounded-2xl bg-slate-800/60 border border-slate-700/80 space-y-2">
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-800/60 border border-slate-700/80 space-y-2 min-w-0">
                 <div className="flex items-center justify-between text-slate-400">
                   <span className="text-xs font-bold uppercase tracking-wider">Pending Rx Slips</span>
                   <FileCheck className="w-4 h-4 text-amber-400" />
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-amber-400">
+                <div className="text-xl sm:text-3xl font-black text-amber-400">
                   {pendingRxCount}
                 </div>
                 <p className="text-xs text-slate-400 font-semibold">Awaiting pharmacist approval</p>
@@ -430,7 +489,7 @@ export const AdminDashboard: React.FC = () => {
                   setActiveTab('products');
                   setShowLowStockOnly(true);
                 }}
-                className="text-left w-full p-5 rounded-2xl bg-slate-800/60 border border-slate-700/80 hover:border-rose-500/60 hover:bg-slate-800/90 transition-all cursor-pointer group space-y-2"
+                className="text-left w-full min-w-0 p-4 sm:p-5 rounded-2xl bg-slate-800/60 border border-slate-700/80 hover:border-rose-500/60 hover:bg-slate-800/90 transition-all cursor-pointer group space-y-2"
                 title="Click to view and restock low inventory medicines"
               >
                 <div className="flex items-center justify-between text-slate-400">
@@ -439,7 +498,7 @@ export const AdminDashboard: React.FC = () => {
                   </span>
                   <AlertTriangle className="w-4 h-4 text-rose-400 group-hover:scale-110 transition-transform" />
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-rose-400 flex items-center justify-between">
+                <div className="text-xl sm:text-3xl font-black text-rose-400 flex items-center justify-between">
                   <span>{lowStockCount} {lowStockCount === 1 ? 'item' : 'items'}</span>
                   <span className="text-xs text-rose-400 font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
                     View list &rarr;
@@ -455,15 +514,12 @@ export const AdminDashboard: React.FC = () => {
             <div className="p-4 sm:p-6 rounded-3xl bg-slate-800/60 border border-slate-700/80">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-base font-bold text-white">Weekly Revenue Trend (PKR)</h3>
-                  <p className="text-xs text-slate-400">Live order checkout flow</p>
+                  <h3 className="text-base font-bold text-white">Revenue, last 7 days (PKR)</h3>
+                  <p className="text-xs text-slate-400">From orders placed in this store (cancelled orders excluded)</p>
                 </div>
-                <span className="text-xs font-bold text-emerald-400 px-2.5 py-1 bg-emerald-950/80 border border-emerald-800/60 rounded-full">
-                  Live Analytics
-                </span>
               </div>
 
-              <AdminRevenueChart data={REVENUE_DATA} />
+              <AdminRevenueChart data={revenueData} />
             </div>
 
             {/* Recent Orders Table with quick status update */}
@@ -785,7 +841,7 @@ export const AdminDashboard: React.FC = () => {
                   const count =
                     st === 'All'
                       ? orders.length
-                      : orders.filter((o) => o.status === st).length;
+                      : orders.filter((o) => STATUS_LABEL[o.status] === st).length;
                   const isActive = orderStatusFilter === st;
                   return (
                     <button
@@ -913,7 +969,7 @@ export const AdminDashboard: React.FC = () => {
                         Order #{item.orderNumber}
                       </span>
                       <h4 className="text-sm font-black text-white">{item.patientName}</h4>
-                      <span className="text-xs text-slate-400">{item.patientPhone}</span>
+                      <span className="text-xs text-slate-400">{item.patientPhone} • {item.date}</span>
                     </div>
 
                     <span
@@ -930,34 +986,55 @@ export const AdminDashboard: React.FC = () => {
                   </div>
 
                   {/* Prescription image thumbnail with zoom button */}
-                  <div className="relative h-44 rounded-2xl overflow-hidden bg-slate-900 border border-slate-700 group">
-                    <img
-                      src={item.image}
-                      alt="Prescription"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    />
+                  {item.image ? (
                     <button
                       type="button"
                       onClick={() => setSelectedRx(item)}
-                      className="absolute inset-0 bg-black/40 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer gap-1.5 text-xs font-bold"
+                      className="relative block w-full h-44 rounded-2xl overflow-hidden bg-slate-900 border border-slate-700 group cursor-pointer"
+                      aria-label={`Inspect prescription for order ${item.orderNumber}`}
                     >
-                      <ZoomIn className="w-4 h-4" />
-                      <span>Inspect Rx Slip</span>
+                      {item.image.startsWith('data:application/pdf') ? (
+                        <span className="w-full h-full flex flex-col items-center justify-center gap-1 text-rose-300">
+                          <FileText className="w-10 h-10" />
+                          <span className="text-xs font-bold">PDF prescription</span>
+                        </span>
+                      ) : (
+                        <img
+                          src={item.image}
+                          alt="Prescription"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                      )}
+                      <span className="absolute inset-0 bg-black/40 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity gap-1.5 text-xs font-bold">
+                        <ZoomIn className="w-4 h-4" />
+                        <span>Inspect Rx Slip</span>
+                      </span>
                     </button>
-                  </div>
+                  ) : (
+                    <div className="h-44 rounded-2xl bg-slate-900 border border-dashed border-slate-600 flex flex-col items-center justify-center gap-2 text-center p-4">
+                      <MessageCircle className="w-8 h-8 text-emerald-400" />
+                      <p className="text-xs text-slate-300 font-semibold">No photo attached</p>
+                      <p className="text-xs text-slate-400">Patient chose to send the prescription on WhatsApp or by call.</p>
+                    </div>
+                  )}
 
                   <div className="text-xs space-y-1">
-                    <p className="text-slate-300">
-                      Doctor: <strong className="text-white">{item.doctorName}</strong>
-                    </p>
-                    <p className="text-slate-400">{item.hospital}</p>
                     <p className="text-slate-400">
-                      Medicines to Dispense:{' '}
-                      <span className="text-emerald-400 font-bold">
-                        {item.medicines.join(', ')}
-                      </span>
+                      Medicines:{' '}
+                      <span className="text-emerald-400 font-bold">{item.medicines.join(', ')}</span>
                     </p>
+                    {item.notes && <p className="text-slate-400 line-clamp-3">Notes: {item.notes}</p>}
                   </div>
+
+                  <a
+                    href={patientWhatsApp(item, `Assalam-o-Alaikum ${item.patientName}, this is DawaStore pharmacy about your order #${item.orderNumber}.`)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-1.5 py-2 rounded-xl border border-emerald-800/70 text-emerald-300 hover:bg-emerald-950/60 text-xs font-bold"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>WhatsApp patient</span>
+                  </a>
 
                   {item.status === 'Pending Verification' && (
                     <div className="flex items-center gap-2 pt-2 border-t border-slate-700">
@@ -1307,8 +1384,10 @@ export const AdminDashboard: React.FC = () => {
                 Prescription Inspection - Order #{selectedRx.orderNumber}
               </h3>
               <button
+                type="button"
                 onClick={() => setSelectedRx(null)}
-                className="p-1 text-slate-400 hover:text-white"
+                className="p-1 text-slate-400 hover:text-white cursor-pointer"
+                aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1316,11 +1395,24 @@ export const AdminDashboard: React.FC = () => {
 
             <div className="mt-4 space-y-4">
               <div className="h-80 bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center border border-slate-700">
-                <img
-                  src={selectedRx.image}
-                  alt="Doctor Slip"
-                  className="max-h-full max-w-full object-contain"
-                />
+                {selectedRx.image?.startsWith('data:application/pdf') ? (
+                  <a
+                    href={selectedRx.image}
+                    download={`prescription-${selectedRx.orderNumber}.pdf`}
+                    className="flex flex-col items-center gap-2 text-rose-300 text-xs font-bold hover:underline"
+                  >
+                    <FileText className="w-12 h-12" />
+                    <span>Download PDF prescription</span>
+                  </a>
+                ) : selectedRx.image ? (
+                  <img
+                    src={selectedRx.image}
+                    alt="Doctor Slip"
+                    className="max-h-full max-w-full object-contain"
+                  />
+                ) : (
+                  <p className="text-xs text-slate-400">No photo attached. Ask the patient on WhatsApp.</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-xs bg-slate-900 p-3 rounded-xl">
@@ -1329,16 +1421,32 @@ export const AdminDashboard: React.FC = () => {
                   <p className="font-bold text-white">{selectedRx.patientName}</p>
                 </div>
                 <div>
-                  <span className="text-slate-400">Doctor / Clinic:</span>
-                  <p className="font-bold text-white">{selectedRx.doctorName}</p>
+                  <span className="text-slate-400">Phone:</span>
+                  <p className="font-bold text-white">{selectedRx.patientPhone}</p>
                 </div>
               </div>
 
               <div className="space-y-2 text-xs">
-                <label className="block text-slate-300 font-semibold">
+                <label htmlFor="rx-reject-reason" className="block text-slate-300 font-semibold">
+                  Reason if rejecting:
+                </label>
+                <select
+                  id="rx-reject-reason"
+                  value={rxRejectReason}
+                  onChange={(e) => setRxRejectReason(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white"
+                >
+                  {RX_REJECT_REASONS.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+                <label htmlFor="rx-pharmacist-note" className="block text-slate-300 font-semibold pt-1">
                   Pharmacist Audit Notes:
                 </label>
                 <input
+                  id="rx-pharmacist-note"
                   type="text"
                   placeholder="e.g. Antibiotics approved for 7-day course..."
                   value={pharmacistNote}
