@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { usePharmacy } from '../../context/PharmacyContext';
 import {
   PhoneCall,
@@ -6,7 +6,6 @@ import {
   MapPin,
   ShieldCheck,
   Truck,
-  Send,
   CheckCircle2,
   Clock,
   Building2,
@@ -24,13 +23,31 @@ interface ContactAndPolicyPageProps {
   initialTab?: 'contact' | 'about' | 'returns' | 'privacy' | 'terms' | 'shipping';
 }
 
+type PolicyTab = 'contact' | 'about' | 'returns' | 'privacy' | 'terms' | 'shipping';
+
+// Pakistani mobile: 03XXXXXXXXX, +923XXXXXXXXX or 00923XXXXXXXXX (spaces and dashes ignored)
+const PK_MOBILE_RE = /^(?:\+92|0092|0)3\d{9}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// wa.me needs the number in international form with digits only, e.g. 923001234567
+const toWhatsAppNumber = (raw: string) => {
+  const digits = raw.replace(/\D/g, '');
+  if (digits.startsWith('92')) return digits;
+  if (digits.startsWith('0')) return '92' + digits.slice(1);
+  return digits;
+};
+
 export const ContactAndPolicyPage: React.FC<ContactAndPolicyPageProps> = ({
   initialTab = 'contact',
 }) => {
   const { storeSettings, addToast, navigate, setIsLicenseModalOpen } = usePharmacy();
-  const [activeTab, setActiveTab] = useState<'contact' | 'about' | 'returns' | 'privacy' | 'terms' | 'shipping'>(
-    initialTab
-  );
+  const [activeTab, setActiveTab] = useState<PolicyTab>(initialTab);
+
+  // The same page instance serves /contact, /privacy, ... so follow the route when it changes (e.g. footer links)
+  useEffect(() => {
+    setActiveTab(initialTab);
+    setSubmittedSuccess(false);
+  }, [initialTab]);
 
   // Contact Form State
   const [contactForm, setContactForm] = useState({
@@ -42,35 +59,52 @@ export const ContactAndPolicyPage: React.FC<ContactAndPolicyPageProps> = ({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
+  // There is no server yet, so the inquiry is handed to WhatsApp with the message pre-filled.
+  // The customer only has to press Send there, and the pharmacy actually receives it.
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!contactForm.name.trim() || !contactForm.phone.trim() || !contactForm.message.trim()) {
-      addToast({
-        type: 'error',
-        title: 'Missing Required Fields',
-        message: 'Please provide your name, phone number, and query message.',
-      });
+    const errors: Record<string, string> = {};
+    if (!contactForm.name.trim()) errors.name = 'Please enter your name';
+    if (!PK_MOBILE_RE.test(contactForm.phone.replace(/[\s-]/g, ''))) {
+      errors.phone = 'Enter a valid mobile number, e.g. 0300 1234567';
+    }
+    if (contactForm.email.trim() && !EMAIL_RE.test(contactForm.email.trim())) {
+      errors.email = 'Enter a valid email address';
+    }
+    if (contactForm.message.trim().length < 5) errors.message = 'Please describe your query';
+    setFormErrors(errors);
+    const firstError = ['name', 'phone', 'email', 'message'].find((k) => errors[k]);
+    if (firstError) {
+      document.getElementById(`contact-${firstError}`)?.focus();
       return;
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setSubmittedSuccess(true);
-      addToast({
-        type: 'success',
-        title: 'Message Dispatched to Pharmacist Desk',
-        message: 'Thank you! Our registered pharmacist or customer support will call/WhatsApp you shortly.',
-      });
-      setContactForm({
-        name: '',
-        phone: '',
-        email: '',
-        subject: 'General Inquiry',
-        message: '',
-      });
-    }, 600);
+    const text = [
+      `*${contactForm.subject}*`,
+      '',
+      contactForm.message.trim(),
+      '',
+      `Name: ${contactForm.name.trim()}`,
+      `Phone: ${contactForm.phone.trim()}`,
+      ...(contactForm.email.trim() ? [`Email: ${contactForm.email.trim()}`] : []),
+    ].join('\n');
+    const url = `https://wa.me/${toWhatsAppNumber(storeSettings.whatsapp)}?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+    setIsSubmitting(false);
+    setSubmittedSuccess(true);
+    setContactForm({ name: '', phone: '', email: '', subject: 'General Inquiry', message: '' });
+  };
+
+  const tabRoutes: Record<PolicyTab, string> = {
+    contact: '/contact',
+    shipping: '/shipping',
+    about: '/about',
+    returns: '/returns',
+    privacy: '/privacy',
+    terms: '/terms',
   };
 
   return (
@@ -120,10 +154,8 @@ export const ContactAndPolicyPage: React.FC<ContactAndPolicyPageProps> = ({
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => {
-                  setActiveTab(tab.id as any);
-                  setSubmittedSuccess(false);
-                }}
+                onClick={() => navigate(tabRoutes[tab.id as PolicyTab])}
+                aria-current={isActive ? 'page' : undefined}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shadow-2xs ${
                   isActive
                     ? 'bg-emerald-700 text-white shadow-sm'
@@ -157,7 +189,7 @@ export const ContactAndPolicyPage: React.FC<ContactAndPolicyPageProps> = ({
                         Toll-Free Helpline (24/7)
                       </span>
                       <a
-                        href={`tel:${storeSettings.helpline}`}
+                        href={`tel:${storeSettings.helpline.replace(/[^0-9+]/g, '')}`}
                         className="text-lg font-black text-emerald-950 hover:text-emerald-700 tracking-tight"
                       >
                         {storeSettings.helpline}
@@ -165,7 +197,7 @@ export const ContactAndPolicyPage: React.FC<ContactAndPolicyPageProps> = ({
                       <p className="text-xs text-emerald-700/80 mt-0.5">Free call from any mobile or landline</p>
                     </div>
                     <a
-                      href={`tel:${storeSettings.helpline}`}
+                      href={`tel:${storeSettings.helpline.replace(/[^0-9+]/g, '')}`}
                       className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0"
                     >
                       Call Now
@@ -174,14 +206,20 @@ export const ContactAndPolicyPage: React.FC<ContactAndPolicyPageProps> = ({
 
                   {/* UAN & Mobile */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                    <a
+                      href={`tel:${storeSettings.uan.replace(/[^0-9+]/g, '')}`}
+                      className="p-3.5 rounded-xl bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-200 transition-colors"
+                    >
                       <span className="text-xs text-slate-500 font-bold uppercase block">UAN Landline</span>
                       <strong className="text-slate-900 block mt-0.5 font-bold">{storeSettings.uan}</strong>
-                    </div>
-                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                    </a>
+                    <a
+                      href={`tel:${storeSettings.phone.replace(/[^0-9+]/g, '')}`}
+                      className="p-3.5 rounded-xl bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-200 transition-colors"
+                    >
                       <span className="text-xs text-slate-500 font-bold uppercase block">Mobile Support</span>
                       <strong className="text-slate-900 block mt-0.5 font-bold">{storeSettings.phone}</strong>
-                    </div>
+                    </a>
                   </div>
 
                   {/* Direct WhatsApp Ordering */}
@@ -283,9 +321,10 @@ export const ContactAndPolicyPage: React.FC<ContactAndPolicyPageProps> = ({
                     <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
                       <CheckCircle2 className="w-6 h-6" />
                     </div>
-                    <h4 className="text-base font-bold text-emerald-950">Inquiry Received</h4>
+                    <h4 className="text-base font-bold text-emerald-950">Almost done: press Send in WhatsApp</h4>
                     <p className="text-xs text-emerald-800 max-w-md mx-auto">
-                      Your query has been assigned to our on-duty clinical pharmacist. We will respond via phone or WhatsApp within 15-30 minutes.
+                      Your message is ready in WhatsApp. Press <strong>Send</strong> there and our on-duty pharmacist will reply within 15-30 minutes.
+                      If WhatsApp didn't open, call us on {storeSettings.helpline}.
                     </p>
                     <button
                       type="button"
@@ -296,59 +335,80 @@ export const ContactAndPolicyPage: React.FC<ContactAndPolicyPageProps> = ({
                     </button>
                   </div>
                 ) : (
-                  <form onSubmit={handleFormSubmit} className="space-y-4">
+                  <form onSubmit={handleFormSubmit} noValidate className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        <label htmlFor="contact-name" className="block text-xs font-bold text-slate-700 mb-1.5">
                           Full Name <span className="text-rose-500">*</span>
                         </label>
                         <input
                           type="text"
-                          required
+                          id="contact-name"
+                          autoComplete="name"
+                          aria-invalid={!!formErrors.name}
+                          aria-describedby={formErrors.name ? 'contact-name-error' : undefined}
                           value={contactForm.name}
                           onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
                           placeholder="e.g. Muhammad Usman"
-                          className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:bg-white focus:border-emerald-600 transition-colors"
+                          className="w-full px-3.5 py-2.5 text-base sm:text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:bg-white focus:border-emerald-600 transition-colors"
                         />
+                        {formErrors.name && (
+                          <p id="contact-name-error" className="text-xs text-rose-600 mt-1">{formErrors.name}</p>
+                        )}
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        <label htmlFor="contact-phone" className="block text-xs font-bold text-slate-700 mb-1.5">
                           Phone Number (with WhatsApp) <span className="text-rose-500">*</span>
                         </label>
                         <input
                           type="tel"
-                          required
+                          id="contact-phone"
+                          autoComplete="tel"
+                          inputMode="tel"
+                          aria-invalid={!!formErrors.phone}
+                          aria-describedby={formErrors.phone ? 'contact-phone-error' : undefined}
                           value={contactForm.phone}
                           onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
                           placeholder="e.g. 0300 1234567"
-                          className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:bg-white focus:border-emerald-600 transition-colors"
+                          className="w-full px-3.5 py-2.5 text-base sm:text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:bg-white focus:border-emerald-600 transition-colors"
                         />
+                        {formErrors.phone && (
+                          <p id="contact-phone-error" className="text-xs text-rose-600 mt-1">{formErrors.phone}</p>
+                        )}
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        <label htmlFor="contact-email" className="block text-xs font-bold text-slate-700 mb-1.5">
                           Email Address
                         </label>
                         <input
                           type="email"
+                          id="contact-email"
+                          autoComplete="email"
+                          aria-invalid={!!formErrors.email}
+                          aria-describedby={formErrors.email ? 'contact-email-error' : undefined}
                           value={contactForm.email}
                           onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
                           placeholder="name@example.com"
-                          className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:bg-white focus:border-emerald-600 transition-colors"
+                          className="w-full px-3.5 py-2.5 text-base sm:text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:bg-white focus:border-emerald-600 transition-colors"
                         />
+                        {formErrors.email && (
+                          <p id="contact-email-error" className="text-xs text-rose-600 mt-1">{formErrors.email}</p>
+                        )}
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        <label htmlFor="contact-subject" className="block text-xs font-bold text-slate-700 mb-1.5">
                           Inquiry Subject
                         </label>
                         <select
+                          id="contact-subject"
                           value={contactForm.subject}
                           onChange={(e) => setContactForm({ ...contactForm, subject: e.target.value })}
-                          className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-hidden focus:bg-white focus:border-emerald-600 transition-colors cursor-pointer"
+                          className="w-full px-3.5 py-2.5 text-base sm:text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-hidden focus:bg-white focus:border-emerald-600 transition-colors cursor-pointer"
                         >
                           <option value="General Inquiry">General Inquiry</option>
                           <option value="Prescription Verification">Prescription Verification</option>
@@ -361,17 +421,22 @@ export const ContactAndPolicyPage: React.FC<ContactAndPolicyPageProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      <label htmlFor="contact-message" className="block text-xs font-bold text-slate-700 mb-1.5">
                         Your Query / Medicine Details <span className="text-rose-500">*</span>
                       </label>
                       <textarea
                         rows={5}
-                        required
+                        id="contact-message"
+                        aria-invalid={!!formErrors.message}
+                        aria-describedby={formErrors.message ? 'contact-message-error' : undefined}
                         value={contactForm.message}
                         onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
                         placeholder="Please mention product name, dosage, delivery city or your specific medical concern..."
-                        className="w-full p-3.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:bg-white focus:border-emerald-600 transition-colors leading-relaxed"
+                        className="w-full p-3.5 text-base sm:text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:bg-white focus:border-emerald-600 transition-colors leading-relaxed"
                       />
+                      {formErrors.message && (
+                        <p id="contact-message-error" className="text-xs text-rose-600 mt-1">{formErrors.message}</p>
+                      )}
                     </div>
 
                     <button
@@ -379,8 +444,8 @@ export const ContactAndPolicyPage: React.FC<ContactAndPolicyPageProps> = ({
                       disabled={isSubmitting}
                       className="w-full sm:w-auto px-8 py-3 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                     >
-                      <Send className="w-4 h-4" />
-                      <span>{isSubmitting ? 'Sending to Pharmacist...' : 'Send Message'}</span>
+                      <WhatsAppIcon className="w-4 h-4 text-white" />
+                      <span>{isSubmitting ? 'Opening WhatsApp...' : 'Send via WhatsApp'}</span>
                     </button>
                   </form>
                 )}
