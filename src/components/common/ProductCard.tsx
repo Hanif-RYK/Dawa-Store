@@ -54,13 +54,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
       className="bg-white rounded-xl border border-slate-200/90 hover:border-emerald-500/80 p-3.5 sm:p-4 flex flex-col sm:flex-row items-center gap-3.5 sm:gap-4 transition-all hover:shadow-md group cursor-pointer"
     >
       <div
-        className="relative w-28 h-28 sm:w-32 sm:h-32 shrink-0 bg-slate-50/60 rounded-lg overflow-hidden border border-slate-100 flex items-center justify-center p-1.5"
+        className="relative w-28 h-28 sm:w-32 sm:h-32 shrink-0 bg-slate-100 rounded-lg overflow-hidden border border-slate-100"
         title={`View details for ${product.name}`}
       >
         <img
           src={product.images[0]}
           alt={product.name}
-          className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           loading="lazy"
           referrerPolicy="no-referrer"
         />
@@ -200,11 +200,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
       onClick={() => navigate(`/product/${product.slug}`)}
       className="bg-white rounded-xl border border-slate-200/90 hover:border-emerald-500/80 p-3 sm:p-3.5 flex flex-col justify-between transition-all duration-200 hover:shadow-md group relative cursor-pointer"
     >
-      <div className="relative w-full h-36 sm:h-40 bg-slate-50/60 rounded-lg overflow-hidden border border-slate-100 group-hover:border-slate-200 transition-colors flex items-center justify-center p-2">
+      {/* Photo fills the frame (product photos are mostly landscape, so "contain" left empty bands) */}
+      <div className="relative w-full aspect-square sm:aspect-[4/3] bg-slate-100 rounded-lg overflow-hidden border border-slate-100 group-hover:border-slate-200 transition-colors">
         <img
           src={product.images[0]}
           alt={product.name}
-          className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           loading="lazy"
           referrerPolicy="no-referrer"
         />
