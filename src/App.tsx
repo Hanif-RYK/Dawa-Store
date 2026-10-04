@@ -1,4 +1,4 @@
-import React, { Component, useEffect } from 'react';
+import React, { Component, Suspense, lazy, useEffect } from 'react';
 import { PharmacyProvider, usePharmacy } from './context/PharmacyContext';
 import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
@@ -6,20 +6,23 @@ import { HomePage } from './components/home/HomePage';
 import { ProductListingPage } from './components/listing/ProductListingPage';
 import { ProductDetailPage } from './components/detail/ProductDetailPage';
 import { CartPage } from './components/cart/CartPage';
-import { CheckoutPage } from './components/checkout/CheckoutPage';
-import { OrderConfirmationPage } from './components/checkout/OrderConfirmationPage';
-import { PrescriptionUploadPage } from './components/prescription/PrescriptionUploadPage';
-import { UserAccountPage } from './components/account/UserAccountPage';
-import { AdminDashboard } from './components/admin/AdminDashboard';
-import { StaffLoginPage } from './components/admin/StaffLoginPage';
 import { ToastContainer } from './components/common/ToastContainer';
 import { QuickViewModal } from './components/common/QuickViewModal';
 import { CompareModal } from './components/common/CompareModal';
 import { AuthModal } from './components/common/AuthModal';
 import { MiniCartDrawer } from './components/cart/MiniCartDrawer';
 import { BackToTop } from './components/common/BackToTop';
-import { ContactAndPolicyPage } from './components/common/ContactAndPolicyPage';
 import { LicenseVerificationModal } from './components/common/LicenseVerificationModal';
+
+// Pages most visitors never open first are split into their own chunks, so the
+// storefront loads less JavaScript (the admin panel alone pulls in the charts library).
+const CheckoutPage = lazy(() => import('./components/checkout/CheckoutPage').then((m) => ({ default: m.CheckoutPage })));
+const OrderConfirmationPage = lazy(() => import('./components/checkout/OrderConfirmationPage').then((m) => ({ default: m.OrderConfirmationPage })));
+const PrescriptionUploadPage = lazy(() => import('./components/prescription/PrescriptionUploadPage').then((m) => ({ default: m.PrescriptionUploadPage })));
+const UserAccountPage = lazy(() => import('./components/account/UserAccountPage').then((m) => ({ default: m.UserAccountPage })));
+const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
+const StaffLoginPage = lazy(() => import('./components/admin/StaffLoginPage').then((m) => ({ default: m.StaffLoginPage })));
+const ContactAndPolicyPage = lazy(() => import('./components/common/ContactAndPolicyPage').then((m) => ({ default: m.ContactAndPolicyPage })));
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -71,6 +74,12 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     return this.props.children;
   }
 }
+
+const RouteLoading: React.FC = () => (
+  <div className="min-h-[50vh] flex items-center justify-center" role="status" aria-label="Loading page">
+    <div className="w-8 h-8 border-[3px] border-emerald-200 border-t-emerald-700 rounded-full animate-spin" />
+  </div>
+);
 
 // Navigates after render (never during it) and replaces the history entry.
 const Redirect: React.FC<{ to: string }> = ({ to }) => {
@@ -180,7 +189,7 @@ const AppContent: React.FC = () => {
 
       {/* Main Routed Content View */}
       <main className="flex-1">
-        {renderRoute()}
+        <Suspense fallback={<RouteLoading />}>{renderRoute()}</Suspense>
       </main>
 
       {/* Global Footer */}

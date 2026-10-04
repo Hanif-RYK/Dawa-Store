@@ -74,9 +74,6 @@ export const QuickViewModal: React.FC = () => {
               src={product.images[activeImageIndex] || product.images[0]}
               alt={product.name}
               className="max-h-full max-w-full object-contain mix-blend-multiply transition-all duration-300"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&auto=format&fit=crop&q=80';
-              }}
             />
             {product.discountPercent ? (
               <span className="absolute top-2.5 left-2.5 px-2 py-0.5 text-xs font-bold bg-rose-600 text-white rounded-md shadow-xs">

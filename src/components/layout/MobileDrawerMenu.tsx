@@ -498,7 +498,7 @@ export const MobileDrawerMenu: React.FC<MobileDrawerMenuProps> = ({ isOpen, onCl
                     </div>
                     <div className="flex items-center gap-1">
                       {wishlist && wishlist.length > 0 && (
-                        <span className="text-[9px] font-bold text-white bg-rose-500 px-1.5 py-0.5 rounded-full">
+                        <span className="text-[11px] font-bold text-white bg-rose-500 px-1.5 py-0.5 rounded-full">
                           {wishlist.length}
                         </span>
                       )}
@@ -529,7 +529,7 @@ export const MobileDrawerMenu: React.FC<MobileDrawerMenuProps> = ({ isOpen, onCl
                       className="w-full text-left p-2.5 bg-white rounded-lg border border-slate-200/80 hover:border-emerald-300 transition-all flex items-center justify-between text-xs font-semibold text-slate-700 cursor-pointer group shadow-2xs"
                     >
                       <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-green-50 text-[#25D366] flex items-center justify-center shrink-0">
+                        <div className="w-7 h-7 rounded-lg bg-green-50 text-[#168049] flex items-center justify-center shrink-0">
                           <WhatsAppIcon className="w-3.5 h-3.5" />
                         </div>
                         <span>Order via WhatsApp</span>

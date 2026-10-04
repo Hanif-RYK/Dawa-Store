@@ -1,6 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useId } from 'react';
 import { usePharmacy } from '../../context/PharmacyContext';
-import { Search, X, Pill, Tag, Layers, ArrowRight } from 'lucide-react';
+import { Search, X, Pill, Tag, Layers, ArrowRight, Clock, TrendingUp } from 'lucide-react';
+
+const RECENT_KEY = 'dawastore_recent_searches';
+const MAX_RECENT = 5;
+// Shown when the box is focused but empty; all exist in the catalog.
+const POPULAR_SEARCHES = ['Panadol', 'Brufen', 'Augmentin', 'Calpol', 'Risek', 'Ventolin'];
+
+const readRecent = (): string[] => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === 'string').slice(0, MAX_RECENT) : [];
+  } catch {
+    return [];
+  }
+};
 
 interface SearchBarProps {
   className?: string;
@@ -14,7 +28,12 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const { products, categories, navigate, setFilters } = usePharmacy();
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>(readRecent);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Header renders a desktop and a mobile SearchBar, so ids must be unique per instance
+  const uid = useId();
+  const suggestionsId = `${uid}-suggestions`;
+  const autocompleteId = `${uid}-autocomplete`;
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -66,14 +85,43 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const hasSuggestions =
     productMatches.length > 0 || ingredientMatches.length > 0 || categoryMatches.length > 0;
 
+  const rememberSearch = (term: string) => {
+    const clean = term.trim();
+    if (!clean) return;
+    const next = [clean, ...recentSearches.filter((t) => t.toLowerCase() !== clean.toLowerCase())].slice(0, MAX_RECENT);
+    setRecentSearches(next);
+    try {
+      localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+    } catch {
+      // Storage can be unavailable (private mode); recent searches are a convenience only.
+    }
+  };
+
+  const clearRecentSearches = () => {
+    setRecentSearches([]);
+    try {
+      localStorage.removeItem(RECENT_KEY);
+    } catch {
+      // ignore
+    }
+  };
+
+  const runSearch = (term: string) => {
+    const clean = term.trim();
+    if (!clean) return;
+    rememberSearch(clean);
+    setQuery(clean);
+    setIsOpen(false);
+    navigate(`/search?q=${encodeURIComponent(clean)}`);
+  };
+
   const handleSearchSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!trimmed) return;
-    setIsOpen(false);
-    navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+    runSearch(query);
   };
 
   const handleSelectProduct = (slug: string) => {
+    rememberSearch(query);
     setIsOpen(false);
     setQuery('');
     navigate(`/product/${slug}`);
@@ -100,7 +148,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     <div ref={containerRef} className={className}>
       <form onSubmit={handleSearchSubmit} className="relative">
         <input
-          id="global-search-input"
+          id={`${uid}-input`}
+          data-search-input=""
+          aria-label="Search medicines"
+          aria-expanded={isOpen}
+          aria-controls={trimmed.length >= 2 ? autocompleteId : suggestionsId}
           type="text"
           value={query}
           onChange={(e) => {
@@ -128,10 +180,68 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         )}
       </form>
 
+      {/* Empty-box suggestions: recent and popular searches */}
+      {isOpen && trimmed.length < 2 && (
+        <div
+          id={suggestionsId}
+          data-search-suggestions=""
+          className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden z-50 divide-y divide-slate-100 animate-in fade-in slide-in-from-top-1 duration-150"
+        >
+          {recentSearches.length > 0 && (
+            <div className="p-2">
+              <div className="px-3 py-1.5 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-slate-500" />
+                  Recent Searches
+                </span>
+                <button
+                  type="button"
+                  onClick={clearRecentSearches}
+                  className="text-xs font-semibold text-slate-500 hover:text-rose-600 cursor-pointer"
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="space-y-0.5">
+                {recentSearches.map((term) => (
+                  <button
+                    key={term}
+                    type="button"
+                    onClick={() => runSearch(term)}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 text-sm text-slate-700 flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <span className="truncate">{term}</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="p-2">
+            <div className="px-3 py-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+              Popular Medicines
+            </div>
+            <div className="flex flex-wrap gap-1.5 px-2 pb-1.5 pt-0.5">
+              {POPULAR_SEARCHES.map((term) => (
+                <button
+                  key={term}
+                  type="button"
+                  onClick={() => runSearch(term)}
+                  className="px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-200 text-xs font-semibold text-slate-700 hover:text-emerald-800 transition-colors cursor-pointer"
+                >
+                  {term}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Autocomplete Dropdown */}
       {isOpen && trimmed.length >= 2 && (
         <div
-          id="search-autocomplete-dropdown"
+          id={autocompleteId}
           className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden z-50 divide-y divide-slate-100 animate-in fade-in slide-in-from-top-1 duration-150"
         >
           {/* Products Group */}

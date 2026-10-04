@@ -595,7 +595,10 @@ export const PharmacyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     addToast({
       type: 'success',
       title: 'Added to Cart',
-      message: `${quantity}x ${product.name} added.`,
+      // Tell customers up front that Rx medicines need a prescription, not only at checkout
+      message: product.isRxRequired
+        ? `${quantity}x ${product.name} added. Prescription required: you'll upload your doctor's slip at checkout.`
+        : `${quantity}x ${product.name} added.`,
     });
 
     if (openDrawer) {

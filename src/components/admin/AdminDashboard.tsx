@@ -703,12 +703,12 @@ export const AdminDashboard: React.FC = () => {
                             <span className="text-xs text-slate-400 line-through">
                               Rs. {p.originalPrice.toLocaleString()}
                             </span>
-                            <span className="px-1.5 py-0.2 text-[9px] font-bold bg-rose-500/20 text-rose-300 rounded">
+                            <span className="px-1.5 py-0.2 text-[11px] font-bold bg-rose-500/20 text-rose-300 rounded">
                               {p.discountPercent || Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)}% OFF
                             </span>
                           </div>
                         ) : p.discountPercent ? (
-                          <span className="px-1.5 py-0.2 text-[9px] font-bold bg-rose-500/20 text-rose-300 rounded mt-0.5 inline-block">
+                          <span className="px-1.5 py-0.2 text-[11px] font-bold bg-rose-500/20 text-rose-300 rounded mt-0.5 inline-block">
                             {p.discountPercent}% OFF
                           </span>
                         ) : null}
@@ -724,7 +724,7 @@ export const AdminDashboard: React.FC = () => {
                               {p.stockCount} in stock
                             </span>
                             {isLow && (
-                              <span className="px-1.5 py-0.2 text-[9px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40 rounded">
+                              <span className="px-1.5 py-0.2 text-[11px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40 rounded">
                                 LOW
                               </span>
                             )}

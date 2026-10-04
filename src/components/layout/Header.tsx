@@ -74,7 +74,7 @@ export const Header: React.FC = () => {
               id="main-hamburger-menu-btn"
               type="button"
               onClick={() => setIsMobileDrawerOpen(true)}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white flex items-center justify-center active:scale-95 transition-colors cursor-pointer shrink-0 group"
+              className="hit-area w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white flex items-center justify-center active:scale-95 transition-colors cursor-pointer shrink-0 group"
               aria-label="Open navigation menu and categories"
               title="Open Menu & Categories"
             >
@@ -92,7 +92,7 @@ export const Header: React.FC = () => {
               <span className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-none">
                 Dawa<span className="text-emerald-600">Store</span>
               </span>
-              <p className="text-[9px] text-slate-400 font-medium hidden sm:block leading-tight">
+              <p className="text-[11px] text-slate-400 font-medium hidden sm:block leading-tight">
                 Pakistan Online Pharmacy
               </p>
             </button>
@@ -132,7 +132,7 @@ export const Header: React.FC = () => {
                   href={storeSettings.socialLinks.whatsapp}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#168049] hover:bg-[#126b3d] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
                   title="Order via WhatsApp"
                 >
                   <WhatsAppIcon className="w-3.5 h-3.5 text-white" />
@@ -145,7 +145,7 @@ export const Header: React.FC = () => {
                 id="header-compare-btn"
                 type="button"
                 onClick={() => setIsCompareOpen(true)}
-                className="relative p-2 text-slate-500 hover:text-sky-600 hover:bg-slate-50 active:scale-95 rounded-lg transition-colors cursor-pointer"
+                className="hit-area relative p-2 text-slate-500 hover:text-sky-600 hover:bg-slate-50 active:scale-95 rounded-lg transition-colors cursor-pointer"
                 aria-label="Compare medicines"
                 title="Compare medicines"
               >
@@ -166,12 +166,12 @@ export const Header: React.FC = () => {
                   setIsAuthModalOpen(true);
                 }
               }}
-              className="flex items-center gap-1.5 p-2 text-slate-500 hover:text-emerald-700 hover:bg-slate-50 active:scale-95 rounded-lg transition-colors cursor-pointer"
+              className="hit-area flex items-center gap-1.5 p-2 text-slate-500 hover:text-emerald-700 hover:bg-slate-50 active:scale-95 rounded-lg transition-colors cursor-pointer"
               aria-label="User account"
             >
               <User className="w-[18px] h-[18px]" />
               <div className="hidden lg:block text-left leading-none">
-                <span className="block text-[9px] text-slate-400 font-medium">{user ? 'Account' : 'Sign In'}</span>
+                <span className="block text-[11px] text-slate-400 font-medium">{user ? 'Account' : 'Sign In'}</span>
                 <span className="block text-xs font-bold text-slate-700 truncate max-w-[80px]">
                   {user ? user.name.split(' ')[0] : 'My Account'}
                 </span>
@@ -181,7 +181,7 @@ export const Header: React.FC = () => {
               id="header-cart-btn"
               type="button"
               onClick={() => setIsMiniCartOpen(true)}
-              className="relative flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white rounded-lg transition-colors cursor-pointer ml-0.5"
+              className="hit-area relative flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white rounded-lg transition-colors cursor-pointer ml-0.5"
               aria-label={cartCount === 1 ? 'Cart with 1 item' : `Cart with ${cartCount} items`}
             >
               <div className="relative">
@@ -200,7 +200,7 @@ export const Header: React.FC = () => {
           </div>
         </div>
         {!isProductScreen && (
-          <div className="md:hidden px-3 pb-2 w-full">
+          <div className="md:hidden px-3 pb-1 w-full">
             <SearchBar className="relative w-full" placeholder="Search medicines, brands..." />
             {/* Collapses while scrolling down (see isCompact) */}
             <div
@@ -210,12 +210,12 @@ export const Header: React.FC = () => {
               inert={isCompact}
             >
               <div className="overflow-hidden">
-                <div className="grid grid-cols-2 gap-1.5 pt-1.5">
+                <div className="grid grid-cols-2 gap-1.5 pt-1.5 pb-1">
                   <button
                     id="mobile-search-upload-rx-btn"
                     type="button"
                     onClick={() => navigate('/upload-prescription')}
-                    className="flex items-center justify-center gap-1.5 py-2 px-2 bg-emerald-700 hover:bg-emerald-800 active:scale-[0.98] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                    className="hit-area-y flex items-center justify-center gap-1.5 py-2 px-2 bg-emerald-700 hover:bg-emerald-800 active:scale-[0.98] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
                   >
                     <Upload className="w-3.5 h-3.5 shrink-0" />
                     <span>Upload Rx</span>
@@ -225,7 +225,7 @@ export const Header: React.FC = () => {
                     href={storeSettings.socialLinks.whatsapp}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center justify-center gap-1.5 py-2 px-2 bg-[#25D366] hover:bg-[#20bd5a] active:scale-[0.98] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                    className="hit-area-y flex items-center justify-center gap-1.5 py-2 px-2 bg-[#168049] hover:bg-[#126b3d] active:scale-[0.98] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
                   >
                     <WhatsAppIcon className="w-3.5 h-3.5 shrink-0 text-white" />
                     <span>WhatsApp</span>
