@@ -69,11 +69,12 @@ export const QuickViewModal: React.FC = () => {
 
         {/* Product Media */}
         <div className="w-full md:w-1/2 p-4 sm:p-6 bg-slate-50 flex flex-col items-center justify-between border-b md:border-b-0 md:border-r border-slate-200/80">
-          <div className="relative w-full aspect-square max-h-52 sm:max-h-64 rounded-xl overflow-hidden bg-white border border-slate-200/60 shadow-xs flex items-center justify-center p-3 sm:p-4">
+          {/* Cap the width (not the height) so the frame stays square; the photo fills it */}
+          <div className="relative w-full max-w-52 sm:max-w-64 aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60 shadow-xs">
             <img
               src={product.images[activeImageIndex] || product.images[0]}
               alt={product.name}
-              className="max-h-full max-w-full object-contain mix-blend-multiply transition-all duration-300"
+              className="w-full h-full object-cover transition-all duration-300"
             />
             {product.discountPercent ? (
               <span className="absolute top-2.5 left-2.5 px-2 py-0.5 text-xs font-bold bg-rose-600 text-white rounded-md shadow-xs">
@@ -94,14 +95,14 @@ export const QuickViewModal: React.FC = () => {
                 <button
                   key={i}
                   onClick={() => setActiveImageIndex(i)}
-                  className={`w-11 h-11 sm:w-12 sm:h-12 min-w-[44px] min-h-[44px] rounded-lg border-2 overflow-hidden bg-white p-1 transition-all cursor-pointer ${
+                  className={`w-11 h-11 sm:w-12 sm:h-12 min-w-[44px] min-h-[44px] rounded-lg border-2 overflow-hidden bg-slate-100 transition-all cursor-pointer ${
                     activeImageIndex === i ? 'border-emerald-600 shadow-xs' : 'border-slate-200 opacity-70 hover:opacity-100'
                   }`}
                 >
                   <img
                     src={img}
                     alt={`${product.name} view ${i + 1}`}
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-cover"
                   />
                 </button>
               ))}
@@ -112,7 +113,8 @@ export const QuickViewModal: React.FC = () => {
         {/* Product Info & Actions */}
         <div className="w-full md:w-1/2 p-4 sm:p-6 flex flex-col justify-between overflow-y-auto">
           <div>
-            <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+            {/* pr-10 keeps the dosage form clear of the close button in the corner */}
+            <div className="flex items-center justify-between text-xs text-slate-500 mb-1 pr-10">
               <span className="font-semibold text-emerald-700 uppercase tracking-wider">{product.brand}</span>
               <span className="text-slate-400">{product.dosageForm}</span>
             </div>

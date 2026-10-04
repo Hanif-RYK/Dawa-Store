@@ -328,7 +328,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug }) =>
             {/* LEFT COLUMN: Product Images & Quality Assurance */}
             <div className="lg:col-span-5 space-y-5">
               <div
-                className="relative aspect-square w-full rounded-2xl bg-white border border-slate-200/90 overflow-hidden cursor-zoom-in group"
+                className="relative aspect-[4/3] lg:aspect-square w-full rounded-2xl bg-slate-100 border border-slate-200/90 overflow-hidden cursor-zoom-in group"
                 onClick={() => setIsLightboxOpen(true)}
               >
                 <img
