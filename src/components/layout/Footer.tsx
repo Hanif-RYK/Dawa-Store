@@ -5,7 +5,6 @@ import { FaqModal } from '../common/FaqModal';
 import { AcceptedPaymentBadges } from '../common/AcceptedPaymentBadges';
 import {
   ChevronDown,
-  CircleCheck,
   Facebook,
   HeartHandshake,
   Instagram,
@@ -13,37 +12,16 @@ import {
   Mail,
   MapPin,
   PhoneCall,
-  Send,
   ShieldCheck,
   Truck,
 } from 'lucide-react';
 
 export const Footer: React.FC = () => {
-  const { navigate, addToast, storeSettings, setIsLicenseModalOpen } = usePharmacy();
-  const [email, setEmail] = useState('');
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const { navigate, storeSettings, setIsLicenseModalOpen } = usePharmacy();
   const [isFaqOpen, setIsFaqOpen] = useState(false);
   // Mobile: link columns collapse into an accordion so the footer isn't a long wall of links
   const [openSection, setOpenSection] = useState<'explore' | 'policies' | null>(null);
   const toggleSection = (key: 'explore' | 'policies') => setOpenSection((prev) => (prev === key ? null : key));
-  const handleSubscribe = (e) => {
-    e.preventDefault();
-    if (!email.trim() || !email.includes('@')) {
-      addToast({
-        type: 'error',
-        title: 'Invalid Email',
-        message: 'Please enter a valid email for newsletter updates.',
-      });
-      return;
-    }
-    setIsSubscribed(true);
-    addToast({
-      type: 'success',
-      title: 'Subscribed to Health Alerts!',
-      message: 'You will receive medicine refill reminders and health discounts.',
-    });
-    setEmail('');
-  };
   return (
     <footer id="app-footer" className="print:hidden bg-slate-900 text-slate-300 pt-12 pb-8 border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -309,41 +287,8 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
           <div className="space-y-4">
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider text-slate-200">Health Newsletter</h4>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Get refill reminders, health tips, and verified discounts directly to your inbox.
-            </p>
-            {isSubscribed ? (
-              <div className="p-3 bg-emerald-950/80 border border-emerald-800 rounded-lg text-xs text-emerald-300 flex items-center gap-2">
-                <CircleCheck className="w-4 h-4 shrink-0 text-emerald-400" />
-                <span>Thank you for subscribing!</span>
-              </div>
-            ) : (
-              <form onSubmit={handleSubscribe} className="space-y-2">
-                <div className="relative">
-                  <input
-                    id="newsletter-email-input"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-3 pr-10 py-2 text-xs bg-slate-800/90 border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
-                  />
-                  <button
-                    id="newsletter-submit-btn"
-                    type="submit"
-                    className="absolute right-1 top-1 bottom-1 px-2.5 bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white rounded-md transition-all cursor-pointer flex items-center justify-center"
-                    aria-label="Subscribe to newsletter"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </form>
-            )}
-            <div className="pt-2">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2.5">
-                Connect With Us
-              </span>
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 mb-3">Connect With Us</h4>
               <div className="flex items-center gap-2">
                 <a
                   href={storeSettings.socialLinks.whatsapp}
