@@ -305,7 +305,7 @@ export const CheckoutPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 py-6">
+    <div className="min-h-screen bg-slate-50 pt-6 pb-28 lg:pb-6">
       <Breadcrumbs items={[{ label: 'Cart', path: '/cart' }, { label: 'Checkout' }]} />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-6">
@@ -413,7 +413,7 @@ export const CheckoutPage: React.FC = () => {
                               {addr.fullName}
                             </span>
                             {addr.isDefault && (
-                              <span className="text-xs font-bold px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded">
+                              <span className="text-xs font-bold px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded">
                                 Default
                               </span>
                             )}
@@ -557,7 +557,7 @@ export const CheckoutPage: React.FC = () => {
             {currentStep === 2 && (
               <div className="space-y-6 animate-in fade-in duration-200">
                 <div className="border-b border-slate-100 pb-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                       <FileText className="w-5 h-5 text-emerald-600" />
                       <span>Step 2: Prescription Verification</span>
@@ -584,13 +584,14 @@ export const CheckoutPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setRxOption('upload')}
-                    className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                    aria-pressed={rxOption === 'upload'}
+                    className={`p-3 sm:p-4 rounded-xl border-2 text-left transition-all cursor-pointer grid grid-cols-[auto_1fr] sm:block items-center gap-x-3 ${
                       rxOption === 'upload'
                         ? 'border-emerald-600 bg-emerald-50/50 shadow-xs'
                         : 'border-slate-200 hover:border-slate-300'
                     }`}
                   >
-                    <Upload className="w-5 h-5 text-emerald-600 mb-1.5" />
+                    <Upload className="w-5 h-5 text-emerald-600 sm:mb-1.5 row-span-2" />
                     <h4 className="text-xs font-bold text-slate-900">Upload Doctor Rx</h4>
                     <p className="text-xs text-slate-500 mt-0.5">Attach photo or PDF</p>
                   </button>
@@ -598,13 +599,14 @@ export const CheckoutPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setRxOption('whatsapp')}
-                    className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                    aria-pressed={rxOption === 'whatsapp'}
+                    className={`p-3 sm:p-4 rounded-xl border-2 text-left transition-all cursor-pointer grid grid-cols-[auto_1fr] sm:block items-center gap-x-3 ${
                       rxOption === 'whatsapp'
                         ? 'border-emerald-600 bg-emerald-50/50 shadow-xs'
                         : 'border-slate-200 hover:border-slate-300'
                     }`}
                   >
-                    <Phone className="w-5 h-5 text-emerald-600 mb-1.5" />
+                    <Phone className="w-5 h-5 text-emerald-600 sm:mb-1.5 row-span-2" />
                     <h4 className="text-xs font-bold text-slate-900">Send via WhatsApp</h4>
                     <p className="text-xs text-slate-500 mt-0.5">Pharmacist will message you</p>
                   </button>
@@ -612,13 +614,14 @@ export const CheckoutPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setRxOption('later')}
-                    className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                    aria-pressed={rxOption === 'later'}
+                    className={`p-3 sm:p-4 rounded-xl border-2 text-left transition-all cursor-pointer grid grid-cols-[auto_1fr] sm:block items-center gap-x-3 ${
                       rxOption === 'later'
                         ? 'border-emerald-600 bg-emerald-50/50 shadow-xs'
                         : 'border-slate-200 hover:border-slate-300'
                     }`}
                   >
-                    <ShieldCheck className="w-5 h-5 text-emerald-600 mb-1.5" />
+                    <ShieldCheck className="w-5 h-5 text-emerald-600 sm:mb-1.5 row-span-2" />
                     <h4 className="text-xs font-bold text-slate-900">Pharmacist Call</h4>
                     <p className="text-xs text-slate-500 mt-0.5">Call me before dispensing</p>
                   </button>
@@ -741,11 +744,11 @@ export const CheckoutPage: React.FC = () => {
                         className="mt-1 text-emerald-600 focus:ring-emerald-500"
                       />
                       <div className="flex-1">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-start justify-between gap-2">
                           <span className="text-sm font-bold text-slate-900">
                             Cash on Delivery (COD)
                           </span>
-                          <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
+                          <span className="shrink-0 whitespace-nowrap text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
                             Recommended
                           </span>
                         </div>
@@ -773,8 +776,8 @@ export const CheckoutPage: React.FC = () => {
                         className="mt-1 text-emerald-600 focus:ring-emerald-500"
                       />
                       <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
                             <span className="text-sm font-bold text-slate-900">
                               JazzCash
                             </span>
@@ -785,7 +788,7 @@ export const CheckoutPage: React.FC = () => {
                               <span className="text-[9px] font-black text-white">Jazz<span className="text-[#D81E27]">Cash</span></span>
                             </div>
                           </div>
-                          <span className="text-xs font-bold px-1.5 py-0.5 bg-rose-100 text-rose-900 rounded">
+                          <span className="shrink-0 whitespace-nowrap text-[11px] font-bold px-1.5 py-0.5 bg-rose-100 text-rose-900 rounded">
                             Instant Mobile Wallet
                           </span>
                         </div>
@@ -891,8 +894,8 @@ export const CheckoutPage: React.FC = () => {
                         className="mt-1 text-emerald-600 focus:ring-emerald-500"
                       />
                       <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
                             <span className="text-sm font-bold text-slate-900">
                               Easypaisa
                             </span>
@@ -900,7 +903,7 @@ export const CheckoutPage: React.FC = () => {
                               <span className="text-[#00A859] font-black text-[9px]">easy<span className="text-slate-900">paisa</span></span>
                             </div>
                           </div>
-                          <span className="text-xs font-bold px-1.5 py-0.5 bg-emerald-100 text-emerald-900 rounded">
+                          <span className="shrink-0 whitespace-nowrap text-[11px] font-bold px-1.5 py-0.5 bg-emerald-100 text-emerald-900 rounded">
                             Mobile Wallet
                           </span>
                         </div>
@@ -992,14 +995,14 @@ export const CheckoutPage: React.FC = () => {
                         className="mt-1 text-emerald-600 focus:ring-emerald-500"
                       />
                       <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
                             <span className="text-sm font-bold text-slate-900">
                               Direct Bank Transfer / Raast (1Link)
                             </span>
                             <Building2 className="w-4 h-4 text-indigo-600" />
                           </div>
-                          <span className="text-xs font-bold px-1.5 py-0.5 bg-indigo-100 text-indigo-900 rounded">
+                          <span className="shrink-0 whitespace-nowrap text-[11px] font-bold px-1.5 py-0.5 bg-indigo-100 text-indigo-900 rounded">
                             Any Bank in PK
                           </span>
                         </div>
@@ -1267,19 +1270,19 @@ export const CheckoutPage: React.FC = () => {
                   </h4>
                   <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-white">
                     {cart.map((item) => (
-                      <div key={item.product.id} className="p-3 flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-3">
+                      <div key={item.product.id} className="p-3 flex items-center justify-between gap-3 text-xs">
+                        <div className="flex items-center gap-3 min-w-0">
                           <img
                             src={item.product.images[0]}
                             alt={item.product.name}
-                            className="w-10 h-10 object-contain rounded bg-slate-50 p-0.5 border"
+                            className="w-12 h-12 shrink-0 object-cover rounded-lg bg-slate-100 border border-slate-200"
                           />
-                          <div>
-                            <p className="font-bold text-slate-900">{item.product.name}</p>
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-900 line-clamp-2">{item.product.name}</p>
                             <p className="text-slate-500">{item.product.packSize} • Qty: {item.quantity}</p>
                           </div>
                         </div>
-                        <span className="font-bold text-slate-800">
+                        <span className="font-bold text-slate-800 whitespace-nowrap shrink-0">
                           Rs. {(item.product.price * item.quantity).toLocaleString()}
                         </span>
                       </div>
@@ -1290,7 +1293,7 @@ export const CheckoutPage: React.FC = () => {
             )}
 
             {/* Stepper Navigation Buttons (Back & Next) */}
-            <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="mt-8 pt-6 border-t border-slate-100 hidden lg:flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
               <button
                 id="checkout-back-btn"
                 type="button"
@@ -1331,7 +1334,7 @@ export const CheckoutPage: React.FC = () => {
           </div>
 
           {/* Sticky Order Breakdown Sidebar */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4 lg:sticky lg:top-20">
             <h3 className="text-sm font-bold text-slate-900 pb-3 border-b border-slate-100">
               Payment Summary
             </h3>
@@ -1381,6 +1384,48 @@ export const CheckoutPage: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+      {/* Mobile: total and the step action stay in reach while scrolling */}
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 shadow-[0_-4px_12px_rgba(15,23,42,0.06)] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="max-w-6xl mx-auto flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handlePrevStep}
+            className="w-11 h-11 shrink-0 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+            aria-label={currentStep === 1 ? 'Back to cart' : 'Previous step'}
+            title={currentStep === 1 ? 'Back to Cart' : 'Previous Step'}
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <div className="min-w-0 leading-tight">
+            <p className="text-[11px] text-slate-500 font-medium">Payable</p>
+            <p className="text-base font-black text-emerald-700 whitespace-nowrap">Rs. {cartTotal.toLocaleString()}</p>
+          </div>
+          {currentStep < 4 ? (
+            <button
+              type="button"
+              onClick={handleNextStep}
+              className="ml-auto flex-1 max-w-[220px] min-h-[44px] px-4 bg-emerald-700 hover:bg-emerald-800 active:scale-[0.98] text-white font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <span>Continue</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={isPlacingOrder}
+              onClick={handlePlaceOrder}
+              className="ml-auto flex-1 max-w-[220px] min-h-[44px] px-4 bg-emerald-700 hover:bg-emerald-800 active:scale-[0.98] text-white font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+            >
+              {isPlacingOrder ? (
+                <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Lock className="w-4 h-4" />
+              )}
+              <span>Place Order</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

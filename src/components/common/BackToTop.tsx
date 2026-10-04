@@ -5,8 +5,8 @@ import { usePharmacy } from '../../context/PharmacyContext';
 export const BackToTop: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const { currentPath } = usePharmacy();
-  // Cart (below lg) and product pages (below sm) have a fixed bottom bar on phones; sit above it
-  const offset = currentPath === '/cart'
+  // Cart and checkout (below lg) and product pages (below sm) have a fixed bottom bar on phones; sit above it
+  const offset = currentPath === '/cart' || currentPath === '/checkout'
     ? 'bottom-24 lg:bottom-6'
     : currentPath.startsWith('/product/')
     ? 'bottom-24 sm:bottom-6'
